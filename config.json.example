@@ -1,0 +1,58 @@
+{
+  "default": {
+    "timeout": 10000,
+    "audio": {
+      "volume": 25
+    },
+    "bot": {
+      "nickname": "Nombre_Bot_Default",
+      "hwid": "Nombre_Dispositivo",
+      "identity": {
+        "level": 10,
+        "type": "file",
+        "file": "bot_identity.ini"
+      }
+    },
+    "users": {
+      "accessMode": "blacklist",
+      "blacklist": [],
+      "admins": []
+    },
+    "opus": {
+      "framerate": 48000,
+      "bitrate": 96000,
+      "buffer": 0.5,
+      "music": true,
+      "complexity": 5
+    },
+    "sources": [
+      {
+        "class": "dev.tu_usuario.tsbot.download.YoutubeDLSource",
+        "exec": "yt-dlp",
+        "requestMode": "FORCE_HTTP",
+        "allowed-hosts": [
+          "youtube.com",
+          "youtu.be"
+        ]
+      }
+    ]
+  },
+  "servers": [
+    {
+      "name": "Nombre del Servidor",
+      "address": "0.0.0.0",
+      "port": 9987,
+      "bot": {
+        "nickname": "Nickname_En_Servidor",
+        "identity": {
+          "file": "tu_identidad.ini"
+        }
+      },
+      "users": {
+        "admins": [
+          "ID_DE_ADMIN_AQUI"
+        ]
+      }
+    }
+  ]
+}
