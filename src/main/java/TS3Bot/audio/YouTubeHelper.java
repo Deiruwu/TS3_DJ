@@ -58,12 +58,20 @@ public class YouTubeHelper {
     }
 
     private static String[] getVideoInfo(String query) throws Exception {
-        // yt-dlp detecta automáticamente si query es una URL o texto
-        ProcessBuilder pb = new ProcessBuilder("yt-dlp",
-                "--get-id", "--get-title",
-                "--no-playlist", // Por ahora manejamos canciones individuales
+        String searchQuery = query;
+
+        if (!query.startsWith("http")) {
+            searchQuery = "ytsearch1:" + query + " (Official Audio)";
+        }
+
+        ProcessBuilder pb = new ProcessBuilder(
+                "yt-dlp",
+                "--get-id",
+                "--get-title",
+                "--no-playlist",
                 "--extractor-args", "youtube:player_client=android",
-                (query.startsWith("http") ? query : "ytsearch1:" + query));
+                searchQuery
+        );
 
         Process p = pb.start();
         try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()))) {

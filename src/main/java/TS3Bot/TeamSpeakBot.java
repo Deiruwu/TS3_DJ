@@ -64,6 +64,7 @@ public class TeamSpeakBot implements TS3Listener {
         register("!vol", this::handleVolume, "!v");
         register("!listp", (args) -> handleListPlaylists(), "!playlists");
         register("!shuffle", (args) -> { player.shuffle(); reply("[color=purple][b]🎲[/b][/color] ¡Cola mezclada aleatoriamente!"); }, "!mix");
+        register("!help", (args) -> handleHelp(), "!h", "!ayuda");
     }
 
     private void register(String command, Consumer<String> action, String... aliases) {
@@ -183,6 +184,35 @@ public class TeamSpeakBot implements TS3Listener {
             saveVolumeConfig(vol);
             reply("[color=blue][b] Volumen:[/b][/color] [b]" + vol + "%[/b]");
         } catch (Exception e) { reply("[color=gray]Uso: !vol 0-100[/color]"); }
+    }
+
+    private void handleHelp() {
+        reply("[color=royalblue][b]▬▬▬▬▬▬▬▬▬▬▬▬▬▬ MUSIC BOT HELP ▬▬▬▬▬▬▬▬▬▬▬▬▬▬[/b][/color]");
+
+        reply("[color=darkcyan][b]▶ REPRODUCCIÓN[/b][/color]");
+        reply("  [b]!p[/b] [i]<nombre/link>[/i] [color=gray]- Reproduce o añade a la cola.[/color]");
+        reply("  [b]!skip[/b] [color=gray]- Salta a la siguiente pista.[/color]");
+        reply("  [b]!stop[/b] [color=gray]- Detiene la música y limpia la cola.[/color]");
+        reply("  [b]!vol[/b] [i]<0-100>[/i] [color=gray]- Ajusta el volumen maestro.[/color]");
+
+        reply(" "); // Espaciador
+
+        reply("[color=darkcyan][b]COLA Y LISTAS[/b][/color]");
+        reply("  [b]!queue[/b] [color=gray]- Muestra qué suena y qué viene después.[/color]");
+        reply("  [b]!shuffle[/b] [color=gray]- Mezcla las canciones en espera.[/color]");
+        reply("  [b]!listp[/b] [color=gray]- Lista todas las playlists del servidor.[/color]");
+
+        reply(" "); // Espaciador
+
+        reply("[color=darkcyan][b]GESTIÓN DE PLAYLISTS[/b][/color]");
+        reply("  [b]!createp[/b] [i]<nombre>[/i] [color=gray]- Crea una nueva lista vacía.[/color]");
+        reply("  [b]!addp[/b] [i]<id> <canción>[/i] [color=gray]- Guarda una canción en una lista.[/color]");
+        reply("  [b]!pp[/b] [i]<nombre>[/i] [color=gray]- Carga una playlist completa a la cola.[/color]");
+
+        reply(" "); // Espaciador
+
+        reply("[color=orange][i]Tip: Si usas links directos de YouTube, el bot responde más rápido.[/i][/color]");
+        reply("[color=royalblue][b]▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬[/b][/color]");
     }
 
     private void saveVolumeConfig(int vol) {
