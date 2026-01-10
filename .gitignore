@@ -12,6 +12,7 @@ target/
 *.iws
 *.iml
 *.ipr
+.dea
 
 # Bases de datos y SQLite
 *.db
@@ -30,6 +31,7 @@ venv/
 config.json
 identity_pi.ini
 .env
+.cache
 
 # Archivos multimedia y temporales
 *.wav
