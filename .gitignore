@@ -12,7 +12,7 @@ target/
 *.iws
 *.iml
 *.ipr
-.dea
+.idea
 
 # Bases de datos y SQLite
 *.db
@@ -31,7 +31,7 @@ venv/
 config.json
 identity_pi.ini
 .env
-.cache
+YoutubeApi/.cache
 
 # Archivos multimedia y temporales
 *.wav
