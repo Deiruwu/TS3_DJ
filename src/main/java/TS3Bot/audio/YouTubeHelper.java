@@ -1,118 +1,99 @@
 package TS3Bot.audio;
 
-import TS3Bot.db.MusicDAO;
+import TS3Bot.model.Track;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import java.io.*;
+import java.net.Socket;
 
 public class YouTubeHelper {
-
     private static final String CACHE_DIR = "cache";
-    private static final MusicDAO dao = new MusicDAO();
+    private static final String PYTHON_HOST = "127.0.0.1";
+    private static final int PYTHON_PORT = 5005;
 
-    public static class MusicEntry {
-        public String uuid, titulo, ruta;
-        public MusicEntry(String uuid, String titulo, String ruta) {
-            this.uuid = uuid; this.titulo = titulo; this.ruta = ruta;
+    public static Track getMetadataViaSocket(String query) throws Exception {
+        try (Socket socket = new Socket(PYTHON_HOST, PYTHON_PORT);
+             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+
+            out.println(query);
+            String jsonResponse = in.readLine();
+
+            if (jsonResponse == null) throw new Exception("El servicio Python no respondió.");
+
+            JsonObject json = JsonParser.parseString(jsonResponse).getAsJsonObject();
+
+            if (!json.has("status") || !json.get("status").getAsString().equals("ok")) {
+                throw new Exception("No encontrado en YT/Spotify.");
+            }
+
+
+            long duration = 0;
+            if (json.has("duration")) {
+                try {
+                    duration = json.get("duration").getAsLong();
+                } catch (Exception e) {
+                }
+            }
+            return new Track(
+                    json.get("id").getAsString(),
+                    json.get("title").getAsString(),
+                    json.get("artist").getAsString(),
+                    json.has("album") ? json.get("album").getAsString() : "Single",
+                    null,
+                    duration
+            );
         }
     }
 
-    public static MusicEntry processRequest(String query, boolean silent) throws Exception {
+    public static File downloadCompressed(Track track) throws Exception {
+        String uuid = track.getUuid();
+
+
         File cacheFolder = new File(CACHE_DIR);
         if (!cacheFolder.exists()) cacheFolder.mkdir();
 
-        String uuid = null;
+        String outputTemplate = new File(cacheFolder, track + ".%(ext)s").getAbsolutePath();
 
-        // VIA RÁPIDA: Si es un link, extraemos el ID manualmente sin llamar a yt-dlp
-        if (query.contains("youtube.com/watch?v=")) {
-            uuid = query.split("v=")[1].split("&")[0];
-        } else if (query.contains("youtu.be/")) {
-            uuid = query.split(".be/")[1].split("\\?")[0];
-        }
-
-        // Si ya tenemos el UUID, miramos la DB antes de hablar con YouTube
-        if (uuid != null) {
-            String rutaExistente = dao.getRutaPorUuid(uuid);
-            if (rutaExistente != null && new File(rutaExistente).exists()) {
-                // No imprimimos nada de "buscando", retornamos de inmediato
-                return new MusicEntry(uuid, "Caché", rutaExistente);
-            }
-        }
-
-        // VIA LENTA: Si no es link o no está en DB, ahí sí usamos yt-dlp
-        if (!silent) System.out.println("[YT] Consultando información...");
-
-        String[] info = getVideoInfo(query);
-        uuid = info[0];
-        String titulo = info[1];
-
-        String rutaExistente = dao.getRutaPorUuid(uuid);
-        if (rutaExistente != null && new File(rutaExistente).exists()) {
-            return new MusicEntry(uuid, titulo, rutaExistente);
-        }
-
-        // Solo aquí avisamos que estamos trabajando duro
-        // Este mensaje lo lanzaremos desde el Bot, no desde aquí.
-        String rutaFinal = downloadSingleStep(uuid);
-        dao.insertarCancion(uuid, titulo, "Desconocido", "Single", rutaFinal);
-
-        return new MusicEntry(uuid, titulo, rutaFinal);
-    }
-
-    private static String[] getVideoInfo(String query) throws Exception {
-        String searchQuery = query;
-
-        if (!query.startsWith("http")) {
-            searchQuery = "ytsearch1:" + query + " (Official Audio)";
-        }
-
-        ProcessBuilder pb = new ProcessBuilder(
-                "yt-dlp",
-                "--get-id",
-                "--get-title",
-                "--no-playlist",
-                "--extractor-args", "youtube:player_client=android",
-                searchQuery
-        );
-
-        Process p = pb.start();
-        try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-            String title = r.readLine();
-            String id = r.readLine();
-
-            if (id == null || title == null) throw new Exception("No se encontró contenido.");
-            return new String[]{id, title};
-        }
-    }
-
-    private static String downloadSingleStep(String uuid) throws Exception {
-        String finalFile = CACHE_DIR + "/" + uuid + ".wav";
-
-        // El comando mágico de tu amigo integrado:
-        // -af loudnorm aplica el filtro de normalización durante la creación del wav
         ProcessBuilder pb = new ProcessBuilder(
                 "yt-dlp",
                 "-x",
-                "--audio-format", "wav",
                 "--extractor-args", "youtube:player_client=android",
-                "--postprocessor-args", "ffmpeg:-ar 48000 -ac 2 -af loudnorm=I=-16:TP=-1.5:LRA=11",
-                "-o", finalFile,
+                "-r", "2M",
+                "-o", outputTemplate,
                 "https://www.youtube.com/watch?v=" + uuid
         );
 
         pb.redirectErrorStream(true);
         Process p = pb.start();
 
-        // Opcional: imprimir el progreso en consola
+        // --- CAMBIO AQUÍ: Guardamos todo el log por si hay error ---
+        StringBuilder fullLog = new StringBuilder();
+
         try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
             String line;
             while ((line = r.readLine()) != null) {
-                if (line.contains("[download]") || line.contains("[ExtractAudio]")) {
-                    System.out.println("\u001B[36m[yt-dlp]\u001B[0m " + line);
+                // Guardamos la línea en memoria
+                fullLog.append(line).append("\n");
+
+                // Solo imprimimos progreso si es descarga normal
+                if(line.contains("[download]") && line.contains("%")) {
+                    System.out.print("\r[DL] " + line.trim());
                 }
             }
         }
+        System.out.println();
 
-        if (p.waitFor() != 0) throw new Exception("La descarga o normalización falló.");
+        // Si falla, imprimimos TODO lo que dijo yt-dlp
+        if (p.waitFor() != 0) {
+            System.err.println("\n[ERROR CRÍTICO YT-DLP]");
+            System.err.println(fullLog.toString());
+            throw new Exception("Error fatal en descarga yt-dlp (Mira el log arriba).");
+        }
 
-        return finalFile;
+        File[] matches = cacheFolder.listFiles((dir, name) -> name.startsWith(track + "."));
+        if (matches == null || matches.length == 0) throw new Exception("Archivo perdido tras descarga.");
+
+        return matches[0];
     }
 }

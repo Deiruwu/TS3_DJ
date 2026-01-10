@@ -1,135 +1,93 @@
 package TS3Bot.db;
 
+import TS3Bot.model.Track;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class MusicDAO {
 
-    // --- GESTIÓN DE CANCIONES ---
-
-    public void insertarCancion(String uuid, String titulo, String artista, String album, String ruta) {
-        String sql = "INSERT OR IGNORE INTO canciones(uuid, titulo, artista, album, ruta_archivo) VALUES(?,?,?,?,?)";
+    public void saveTrack(Track track) {
+        String sql = "INSERT OR REPLACE INTO songs(uuid, title, artist, album, path, duration) VALUES(?,?,?,?,?,?)";
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, uuid);
-            pstmt.setString(2, titulo);
-            pstmt.setString(3, artista);
-            pstmt.setString(4, album);
-            pstmt.setString(5, ruta);
+            pstmt.setString(1, track.getUuid());
+            pstmt.setString(2, track.getTitle());
+            pstmt.setString(3, track.getArtist());
+            pstmt.setString(4, track.getAlbum());
+            pstmt.setString(5, track.getPath());
+            pstmt.setLong(6, track.getDuration());
             pstmt.executeUpdate();
-        } catch (SQLException e) { e.printStackTrace(); }
+        } catch (SQLException e) {
+            System.err.println("Error guardando track: " + e.getMessage());
+        }
     }
 
-    public String getRutaPorUuid(String uuid) {
-        String sql = "SELECT ruta_archivo FROM canciones WHERE uuid = ?";
+    public Track getTrack(String uuid) {
+        String sql = "SELECT * FROM songs WHERE uuid = ?";
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, uuid);
             ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) return rs.getString("ruta_archivo");
-        } catch (SQLException e) { e.printStackTrace(); }
+            if (rs.next()) {
+                return new Track(
+                        rs.getString("uuid"),
+                        rs.getString("title"),
+                        rs.getString("artist"),
+                        rs.getString("album"),
+                        rs.getString("path"),
+                        rs.getLong("duration")
+                );
+            }
+        } catch (SQLException e) {
+            System.err.println("Error recuperando track: " + e.getMessage());
+        }
         return null;
     }
 
-    // --- GESTIÓN DE PLAYLISTS ---
+    // --- MÉTODOS DE PLAYLISTS (Esenciales para que funcione !listp y !pp) ---
 
-    public int crearPlaylist(String nombre, String creadorUid) {
-        String sql = "INSERT INTO playlists(nombre, creador_uid) VALUES(?, ?)";
+    public int crearPlaylist(String name, String owner) {
+        String sql = "INSERT INTO playlists(name, owner_uid) VALUES(?,?)";
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setString(1, nombre);
-            pstmt.setString(2, creadorUid);
+            pstmt.setString(1, name);
+            pstmt.setString(2, owner);
             pstmt.executeUpdate();
-
-            // En SQLite, esta es la forma más fiable de obtener el último ID insertado
-            try (Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery("SELECT last_insert_rowid()")) {
-                if (rs.next()) return rs.getInt(1);
-            }
-        } catch (SQLException e) {
-            System.err.println("Error al crear playlist: " + e.getMessage());
-        }
-        return -1;
+            return 1;
+        } catch (SQLException e) { return -1; }
     }
 
-    public void añadirCancionAPlaylist(int playlistId, String cancionUuid, String usuarioUid) {
-        String sql = "INSERT OR REPLACE INTO playlist_contenido(playlist_id, cancion_uuid, agregado_por_uid) VALUES(?,?,?)";
+    public void añadirCancionAPlaylist(int playlistId, String songUuid, String userUid) {
+        // Aquí podrías validar userUid si quisieras permisos
+        String sql = "INSERT INTO playlist_songs(playlist_id, song_uuid) VALUES(?,?)";
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, playlistId);
-            pstmt.setString(2, cancionUuid);
-            pstmt.setString(3, usuarioUid);
+            pstmt.setString(2, songUuid);
             pstmt.executeUpdate();
-        } catch (SQLException e) { e.printStackTrace(); }
+        } catch (SQLException ignored) {}
     }
 
-    // --- BÚSQUEDAS ---
-
-    /**
-     * Obtiene todos los UUIDs de una playlist por su nombre o ID.
-     */
-    public List<String> getUuidsDePlaylist(String nombrePlaylist) {
-        List<String> lista = new ArrayList<>();
-        String sql = "SELECT cancion_uuid FROM playlist_contenido " +
-                "JOIN playlists ON playlists.id = playlist_contenido.playlist_id " +
-                "WHERE playlists.nombre = ? OR playlists.id = ? " +
-                "ORDER BY playlist_contenido.posicion ASC";
-
+    public List<String> getUuidsDePlaylist(String playlistName) {
+        List<String> list = new ArrayList<>();
+        String sql = "SELECT song_uuid FROM playlist_songs ps JOIN playlists p ON ps.playlist_id = p.id WHERE p.name = ?";
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, nombrePlaylist);
-            pstmt.setString(2, nombrePlaylist); // Intentamos por ID también
+            pstmt.setString(1, playlistName);
             ResultSet rs = pstmt.executeQuery();
-            while (rs.next()) {
-                lista.add(rs.getString("cancion_uuid"));
-            }
-        } catch (SQLException e) { e.printStackTrace(); }
-        return lista;
-    }
-
-    /**
-     * Busca playlists que coincidan con un texto (para sugerencias)
-     */
-    public List<String> buscarPlaylists(String query) {
-        List<String> resultados = new ArrayList<>();
-        String sql = "SELECT nombre FROM playlists WHERE nombre LIKE ?";
-        try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, "%" + query + "%");
-            ResultSet rs = pstmt.executeQuery();
-            while (rs.next()) resultados.add(rs.getString("nombre"));
-        } catch (SQLException e) { e.printStackTrace(); }
-        return resultados;
-    }
-
-    /**
-     * Obtiene el ID de una playlist por su nombre
-     */
-    public int getPlaylistId(String nombre) {
-        String sql = "SELECT id FROM playlists WHERE nombre = ?";
-        try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, nombre);
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) return rs.getInt("id");
-        } catch (SQLException e) { e.printStackTrace(); }
-        return -1;
+            while(rs.next()) list.add(rs.getString("song_uuid"));
+        } catch(SQLException ignored) {}
+        return list;
     }
 
     public List<String> obtenerTodasLasPlaylists() {
-        List<String> lista = new ArrayList<>();
-        String sql = "SELECT id, nombre, creador_uid FROM playlists";
+        List<String> list = new ArrayList<>();
         try (Connection conn = DatabaseManager.getConnection();
              Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                lista.add("ID: " + rs.getInt("id") + " | [b]" + rs.getString("nombre") + "[/b]");
-            }
-        } catch (SQLException e) {
-            System.err.println("Error al listar playlists: " + e.getMessage());
-        }
-        return lista;
+             ResultSet rs = stmt.executeQuery("SELECT id, name FROM playlists")) {
+            while (rs.next()) list.add("ID: " + rs.getInt("id") + " | " + rs.getString("name"));
+        } catch (SQLException ignored) {}
+        return list;
     }
 }

@@ -1,5 +1,6 @@
 package TS3Bot;
 
+import TS3Bot.utils.LogUtils;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -9,6 +10,10 @@ import java.io.FileReader;
 public class Main {
 
     public static void main(String[] args) {
+
+        LogUtils.install();
+        System.out.println("Iniciando Bot...");
+
         try {
             // 1. Definir dónde está el archivo
             File archivoConfig = new File("config.json");

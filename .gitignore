@@ -16,15 +16,24 @@ target/
 # Bases de datos y SQLite
 *.db
 *.sqlite
+*.sqlite3
+
+# --- PYTHON ---
+__pycache__/
+*.pyc
+.venv/
+venv/
+.cache/
+*.egg-info/
 
 # Configuración sensible y credenciales
 config.json
 identity_pi.ini
+.env
 
 # Archivos multimedia y temporales
 *.wav
 cache/
-temp_music.wav
 
 # Archivos de compilación (Java/Maven)
 target/
