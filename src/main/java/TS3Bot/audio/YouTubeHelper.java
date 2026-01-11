@@ -53,7 +53,7 @@ public class YouTubeHelper {
         File cacheFolder = new File(CACHE_DIR);
         if (!cacheFolder.exists()) cacheFolder.mkdir();
 
-        String outputTemplate = new File(cacheFolder, track + ".%(ext)s").getAbsolutePath();
+        String outputTemplate = new File(cacheFolder, uuid + ".%(ext)s").getAbsolutePath();
 
         ProcessBuilder pb = new ProcessBuilder(
                 "yt-dlp",
@@ -91,7 +91,7 @@ public class YouTubeHelper {
             throw new Exception("Error fatal en descarga yt-dlp (Mira el log arriba).");
         }
 
-        File[] matches = cacheFolder.listFiles((dir, name) -> name.startsWith(track + "."));
+        File[] matches = cacheFolder.listFiles((dir, name) -> name.startsWith(uuid + "."));
         if (matches == null || matches.length == 0) throw new Exception("Archivo perdido tras descarga.");
 
         return matches[0];
