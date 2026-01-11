@@ -333,7 +333,7 @@ public class TeamSpeakBot implements TS3Listener {
 
 
         client.setMicrophone(this.player);
-        System.out.println(">>> ¡LISTO!");
+        System.out.println("Bot conectado.");
     }
 
     private void reply(String msg) {

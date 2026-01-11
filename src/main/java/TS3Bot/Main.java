@@ -33,7 +33,6 @@ public class Main {
             // 3. INICIAR EL BOT
             // CAMBIO MÍNIMO: En lugar de separar aquí el JSON, se lo pasamos entero al Bot junto con el archivo.
             // Esto es obligatorio para que el Bot tenga permiso de escritura para guardar el volumen.
-            TS3Bot.db.DatabaseManager.init();
             TeamSpeakBot ts = new TeamSpeakBot(configCompleta, archivoConfig);
 
             // 5. Encendemos
