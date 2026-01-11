@@ -1,46 +1,49 @@
 package TS3Bot.db;
 
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Scanner;
 
 public class DatabaseManager {
     private static final String URL = "jdbc:sqlite:bot_database.db";
+    private static final String SCHEMA_PATH = "/db/database.sql";
 
     public static void init() {
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-            // Tabla ajustada a tu modelo Track (sin thumbnail)
-            String sqlCanciones = "CREATE TABLE IF NOT EXISTS songs (" +
-                    "uuid TEXT PRIMARY KEY, " +
-                    "title TEXT, " +
-                    "artist TEXT, " +
-                    "album TEXT, " +
-                    "path TEXT, " +
-                    "duration INTEGER, " +
-                    "added_at DATETIME DEFAULT CURRENT_TIMESTAMP" +
-                    ")";
-            stmt.execute(sqlCanciones);
 
-            // Tablas de Playlists (Se mantienen igual, son relacionales)
-            String sqlPlaylists = "CREATE TABLE IF NOT EXISTS playlists (" +
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    "name TEXT UNIQUE, " +
-                    "owner_uid TEXT" +
-                    ")";
-            stmt.execute(sqlPlaylists);
+            String sql = loadSqlFile();
 
-            String sqlPlaylistSongs = "CREATE TABLE IF NOT EXISTS playlist_songs (" +
-                    "playlist_id INTEGER, " +
-                    "song_uuid TEXT, " +
-                    "FOREIGN KEY(playlist_id) REFERENCES playlists(id), " +
-                    "FOREIGN KEY(song_uuid) REFERENCES songs(uuid)" +
-                    ")";
-            stmt.execute(sqlPlaylistSongs);
+            if (sql == null || sql.isEmpty()) {
+                System.err.println("[DB Error] El archivo database.sql está vacío o no se encontró.");
+                return;
+            }
 
-            System.out.println("[DB] Tablas inicializadas.");
+            stmt.executeUpdate(sql);
+
+            System.out.println("[DB] base de datos iniciada");
+
         } catch (SQLException e) {
+            System.err.println("[DB Error] Fallo SQL: " + e.getMessage());
             e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("[DB Error] Fallo al leer el archivo: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private static String loadSqlFile() {
+        try (InputStream is = DatabaseManager.class.getResourceAsStream(SCHEMA_PATH)) {
+            if (is == null) return null;
+            try (Scanner scanner = new Scanner(is, StandardCharsets.UTF_8.name())) {
+                return scanner.useDelimiter("\\A").next();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
         }
     }
 
