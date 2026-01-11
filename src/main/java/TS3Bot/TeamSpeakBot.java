@@ -3,8 +3,12 @@ package TS3Bot;
 import TS3Bot.audio.MusicManager;
 import TS3Bot.audio.TrackScheduler;
 import TS3Bot.config.JsonHelper;
-import TS3Bot.db.MusicDAO;
-import TS3Bot.model.Track; // <--- IMPORTANTE: El nuevo modelo
+import TS3Bot.db.PlaylistDAO;
+import TS3Bot.db.SongDAO;
+import TS3Bot.db.StatsDAO;
+import TS3Bot.model.Playlist;
+import TS3Bot.model.PlaylistType;
+import TS3Bot.model.Track;
 import com.github.manevolent.ts3j.event.TS3Listener;
 import com.github.manevolent.ts3j.event.TextMessageEvent;
 import com.github.manevolent.ts3j.identity.LocalIdentity;
@@ -29,9 +33,10 @@ public class TeamSpeakBot implements TS3Listener {
     private final LocalTeamspeakClientSocket client;
     private final TrackScheduler player;
 
-    // Componentes de Lógica y Datos
     private final MusicManager musicManager;
-    private final MusicDAO dao;
+    private final SongDAO songDao;
+    private final PlaylistDAO playlistDao;
+    private final StatsDAO statsDao;
 
     private final JsonObject rootConfig;
     private final JsonObject defaultConfig;
@@ -40,6 +45,8 @@ public class TeamSpeakBot implements TS3Listener {
 
     private final Map<String, Consumer<String>> commandMap = new HashMap<>();
     private boolean running = false;
+
+    private List<Playlist> allPlaylists;
 
     public TeamSpeakBot(JsonObject rootConfig, File configFile) {
         this.rootConfig = rootConfig;
@@ -52,16 +59,22 @@ public class TeamSpeakBot implements TS3Listener {
         this.client.addListener(this);
         this.player = new TrackScheduler();
 
-        // Inicializamos DB, DAO y Manager
         TS3Bot.db.DatabaseManager.init();
-        this.dao = new MusicDAO();
+        this.songDao = new SongDAO();
+        this.playlistDao = new PlaylistDAO();
+        this.statsDao = new StatsDAO();
         this.musicManager = new MusicManager();
+
+        this.allPlaylists = playlistDao.getAllPlaylists();
 
         registerCommands();
     }
 
+    private void refreshPlaylists() {
+        this.allPlaylists = playlistDao.getAllPlaylists();
+    }
+
     private void registerCommands() {
-        register("!p", this::handlePlay, "!play");
         register("!skip", (args) -> { reply("[color=orange][b]»[/b][/color] Saltando canción..."); player.next(); }, "!next", "!s");
         register("!stop", (args) -> { reply("[color=red][b]■[/b][/color] Música detenida."); player.shutdown(); }, "!leave");
         register("!queue", (args) -> {
@@ -73,8 +86,6 @@ public class TeamSpeakBot implements TS3Listener {
         register("!vol", this::handleVolume, "!v");
         register("!shuffle", (args) -> { player.shuffle(); reply("[color=purple][b]🎲[/b][/color] ¡Cola mezclada!"); }, "!mix");
 
-        // Playlists
-        register("!pp", this::handlePlayPlaylist);
         register("!listp", (args) -> handleListPlaylists(), "!playlists");
 
         register("!help", (args) -> handleHelp(), "!h", "!ayuda");
@@ -96,11 +107,14 @@ public class TeamSpeakBot implements TS3Listener {
         if (!raw.startsWith("!")) return;
 
         String userUid = e.getInvokerUniqueId();
+        String userName = e.getInvokerName();
         String[] parts = raw.split("\\s+", 2);
         String label = parts[0].toLowerCase();
         String args = parts.length > 1 ? parts[1] : "";
 
         switch (label){
+            case "!p", "!play" -> handlePlay(args, userUid, userName);
+            case "!pp" -> handlePlayPlaylist(args);
             case "!createp" -> handleCreatePlaylist(args, userUid);
             case "!addp" -> handleAddSongToPlaylist(args, userUid);
             default -> {
@@ -110,19 +124,7 @@ public class TeamSpeakBot implements TS3Listener {
         }
     }
 
-    // --- MANEJO DE MÚSICA Y PLAYLISTS ---
-
-
-
-    /**
-     * Maneja la reproduccion de una pista segun la consulta proporcionada.
-     * El metodo resuelve la consulta para encontrar la pista correspondiente, la anade a la cola del reproductor de musica
-     * y envia un mensaje al servidor con los detalles de la reproduccion o un mensaje de error en caso de fallo.
-     *
-     * @param query la consulta de busqueda o enlace directo utilizado para resolver y reproducir una pista.
-     *              Si la consulta esta vacia, la ejecucion se termina.
-     */
-    private void handlePlay(String query) {
+    private void handlePlay(String query, String userUid, String userName) {
         if (query.isEmpty()) return;
 
         new Thread(() -> {
@@ -130,6 +132,9 @@ public class TeamSpeakBot implements TS3Listener {
                 reply("[color=orange][b]Buscando...[/b][/color]");
                 Track track = musicManager.resolve(query);
                 player.queue(track);
+
+                statsDao.registrarReproduccion(userUid, track.getUuid());
+                ensureUserPersonalPlaylist(userUid, userName, track.getUuid());
 
                 reply("[color=purple][b]»[/b][/color] Reproduciendo: [b]" + track + "[/b]");
 
@@ -140,111 +145,124 @@ public class TeamSpeakBot implements TS3Listener {
         }).start();
     }
 
-    /**
-     * Maneja la reproduccion de una lista de reproduccion dado su nombre. El metodo obtiene la lista de UUIDs de canciones
-     * asociados a la lista de reproduccion, resuelve cada UUID en una pista, pone las pistas en cola para su reproduccion
-     * y envia los mensajes correspondientes al servidor indicando el progreso y los resultados.
-     *
-     * @param playlistName el nombre de la lista de reproduccion a reproducir. Si el nombre esta vacio, el metodo termina la ejecucion.
-     */
-    private void handlePlayPlaylist(String playlistName) {
-        if (playlistName.isEmpty()) { reply("[color=gray]Uso: !pp <nombre>[/color]"); return; }
+    private void ensureUserPersonalPlaylist(String userUid, String userName, String songUuid) {
+        String playlistName = "Música de " + userName;
+
+        Playlist userPlaylist = null;
+        for (Playlist p : allPlaylists) {
+            if (p.getName().equals(playlistName) && p.getOwnerUid().equals(userUid)) {
+                userPlaylist = p;
+                break;
+            }
+        }
+
+        if (userPlaylist == null) {
+            int newId = playlistDao.createPlaylist(playlistName, userUid, PlaylistType.FAVORITES);
+            if (newId != -1) {
+                refreshPlaylists();
+                for (Playlist p : allPlaylists) {
+                    if (p.getId() == newId) {
+                        userPlaylist = p;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (userPlaylist != null) {
+            playlistDao.addSongToPlaylist(userPlaylist.getId(), songUuid);
+        }
+    }
+
+    private void handlePlayPlaylist(String input) {
+        if (input.isEmpty()) { reply("[color=gray]Uso: !pp <nombre o número>[/color]"); return; }
 
         new Thread(() -> {
-            List<String> uuids = dao.getUuidsDePlaylist(playlistName);
+            Playlist playlist = resolvePlaylist(input);
+            if (playlist == null) {
+                reply("[color=red][b]![/b][/color] Playlist no encontrada.");
+                return;
+            }
+
+            List<String> uuids = playlistDao.getTrackUuidsFromPlaylist(playlist);
             if (uuids.isEmpty()) { reply("[color=red][b]![/b][/color] Playlist vacía o inexistente."); return; }
 
             reply("[color=blue][b]⌛[/b][/color] Se añadieron [b]" + uuids.size() + "[/b] canciones a la cola...");
 
             for (String uuid : uuids) {
                 try {
-                    // Resolvemos por UUID (esto verifica caché o descarga si falta)
                     Track track = musicManager.resolve(uuid);
                     player.queue(track);
                 } catch (Exception ignored) {
                     System.err.println("Falló carga de track en playlist: " + uuid);
                 }
             }
-            reply("[color=green][b]✔[/b][/color] Playlist cargada.");
+            reply("[color=green][b]✓[/b][/color] Playlist cargada.");
         }).start();
     }
 
-    /**
-     * Maneja la adicion de una cancion a una lista de reproduccion especificada por el usuario. El metodo analiza la entrada
-     * para extraer el ID de la lista de reproduccion y el identificador o consulta de la cancion, resuelve los detalles de la cancion
-     * usando la consulta proporcionada y anade la cancion resuelta a la lista de reproduccion especificada. Se envian mensajes de exito
-     * o error al servidor al finalizar.
-     *
-     * @param args    Una cadena que contiene el ID de la lista de reproduccion y la consulta de la cancion separados por un espacio. El ID
-     *                de la lista de reproduccion debe ser un entero y la consulta de la cancion debe identificar la cancion a anadir, ya sea
-     *                mediante un enlace directo o una consulta de texto.
-     * @param userUid El identificador unico del usuario que solicita la adicion, usado para seguimiento o permisos.
-     */
     private void handleAddSongToPlaylist(String args, String userUid) {
         String[] parts = args.split("\\s+", 2);
         if (parts.length < 2) {
-            reply("[color=gray]Uso: !addp <ID_Playlist> <Canción>[/color]");
+            reply("[color=gray]Uso: !addp <nombre o número> <Canción>[/color]");
             return;
         }
 
         new Thread(() -> {
             try {
-                int pId = Integer.parseInt(parts[0]);
-                // Resolvemos primero para asegurar que tenemos el UUID y Título correctos
+                Playlist playlist = resolvePlaylist(parts[0]);
+                if (playlist == null) {
+                    reply("[color=red][b]![/b][/color] Playlist no encontrada.");
+                    return;
+                }
+
                 Track track = musicManager.resolve(parts[1]);
 
-                // Usamos los getters del objeto Track
-                dao.añadirCancionAPlaylist(pId, track.getUuid(), userUid);
-                reply("[color=green][b]+[/b][/color] [i]" + track.getTitle() + "[/i] añadida a la playlist [b]#" + pId + "[/b]");
+                playlistDao.addSongToPlaylist(playlist.getId(), track.getUuid());
+                reply("[color=green][b]+[/b][/color] [i]" + track.getTitle() + "[/i] añadida a la playlist [b]" + playlist.getName() + "[/b]");
             } catch (Exception e) {
                 reply("[color=red][b]✘ Error:[/b][/color] " + e.getMessage());
             }
         }).start();
     }
 
-    /**
-     * Maneja la creacion de una nueva lista de reproduccion con el nombre especificado y la asocia con el UID del usuario proporcionado.
-     * Si el nombre de la lista de reproduccion esta vacio, se envia un mensaje informativo al usuario. Tras una creacion exitosa,
-     * se envia un mensaje de confirmacion que incluye el ID de la lista de reproduccion. Si ocurre un error (por ejemplo, nombre duplicado
-     * o problemas con la base de datos), se notifica al usuario con un mensaje de error.
-     *
-     * @param name    El nombre de la lista de reproduccion que se va a crear. No debe estar vacio.
-     * @param userUid El identificador unico del usuario que esta creando la lista de reproduccion.
-     */
-
     private void handleCreatePlaylist(String name, String userUid) {
         if (name.isEmpty()) { reply("[color=gray]Uso: !createp <nombre>[/color]"); return; }
-        int id = dao.crearPlaylist(name, userUid);
+        int id = playlistDao.createPlaylist(name, userUid, PlaylistType.USER);
         if (id != -1) {
-            reply("[color=green][b]✔[/b][/color] Playlist [b]'" + name + "'[/b] creada. [i](ID: " + id + ")[/i]");
+            refreshPlaylists();
+            reply("[color=green][b]✓[/b][/color] Playlist [b]'" + name + "'[/b] creada. [i](ID: " + id + ")[/i]");
         } else {
             reply("[color=red][b]✘ Error:[/b][/color] Nombre duplicado o error DB.");
         }
     }
 
-    /**
-     * Maneja el listado de todas las listas de reproduccion disponibles. Este metodo obtiene todas las listas de reproduccion
-     * de la base de datos a traves del DAO, las formatea y envia la lista resultante al servidor.
-     *
-     * Si no se encuentran listas de reproduccion, se envia un mensaje indicando la ausencia de listas de reproduccion y
-     * proporcionando instrucciones para crear una nueva lista de reproduccion.
-     *
-     * El metodo utiliza mensajes con codigos de color para una mejor distincion visual en el chat del servidor.
-     *
-     * Nota: Este metodo depende de la capa DAO para obtener las listas de reproduccion y del metodo `reply` para enviar
-     * mensajes al servidor.
-     */
     private void handleListPlaylists() {
-        List<String> playlists = dao.obtenerTodasLasPlaylists();
-        if (playlists.isEmpty()) {
+        if (allPlaylists.isEmpty()) {
             reply("[color=gray]No hay playlists. Usa !createp <nombre>[/color]");
             return;
         }
         reply("[color=blue][b]======= PLAYLISTS =======[/b][/color]");
-        for (String p : playlists) reply("[color=darkgreen]•[/color] " + p);
+        for (int i = 0; i < allPlaylists.size(); i++) {
+            reply("[color=darkgreen]\t•[/color] " + allPlaylists.get(i).getName() + " [i](#" + (i + 1) + ")[/i]");
+        }
     }
 
-    // --- SISTEMA ---
+    private Playlist resolvePlaylist(String input) {
+        try {
+            int index = Integer.parseInt(input) - 1;
+            if (index >= 0 && index < allPlaylists.size()) {
+                return allPlaylists.get(index);
+            }
+        } catch (NumberFormatException e) {
+            for (Playlist p : allPlaylists) {
+                if (p.getName().equalsIgnoreCase(input)) {
+                    return p;
+                }
+            }
+        }
+        return null;
+    }
 
     private void handleVolume(String args) {
         try {
@@ -264,12 +282,10 @@ public class TeamSpeakBot implements TS3Listener {
         reply("  [b]!vol[/b] [i]<0-100>[/i] [color=gray]- Volumen.[/color]");
         reply(" ");
         reply("[color=darkcyan][b] PLAYLISTS[/b][/color]");
-        reply("  [b]!createp[/b] [i]<nombre>[/i] | [b]!addp[/b] [i]<id> <canción>[/i]");
-        reply("  [b]!pp[/b] [i]<nombre>[/i] | [b]!listp[/b]");
+        reply("  [b]!createp[/b] [i]<nombre>[/i] | [b]!addp[/b] [i]<nombre/#> <canción>[/i]");
+        reply("  [b]!pp[/b] [i]<nombre/#>[/i] | [b]!listp[/b]");
         reply("[color=royalblue][b]▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬[/b][/color]");
     }
-
-    // --- CICLO DE VIDA Y UTILS ---
 
     private void saveVolumeConfig(int vol) {
         try {

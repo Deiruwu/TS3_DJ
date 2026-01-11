@@ -46,7 +46,6 @@ public class TrackScheduler implements Microphone {
                 startStreaming(currentTrack);
             } else {
                 currentTrack = null;
-                // Puedes poner un log aquí si quieres
             }
         }
     }

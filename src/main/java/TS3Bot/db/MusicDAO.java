@@ -7,6 +7,7 @@ import java.util.List;
 
 public class MusicDAO {
 
+/*
     public void saveTrack(Track track) {
         String sql = "INSERT OR REPLACE INTO songs(uuid, title, artist, album, path, duration) VALUES(?,?,?,?,?,?)";
         try (Connection conn = DatabaseManager.getConnection();
@@ -90,4 +91,5 @@ public class MusicDAO {
         } catch (SQLException ignored) {}
         return list;
     }
+*/
 }

@@ -1,14 +1,14 @@
 package TS3Bot.audio;
 
-import TS3Bot.db.MusicDAO;
+import TS3Bot.db.SongDAO;
 import TS3Bot.model.Track;
 import java.io.File;
 
 public class MusicManager {
-    private final MusicDAO dao;
+    private final SongDAO dao;
 
     public MusicManager() {
-        this.dao = new MusicDAO();
+        this.dao = new SongDAO();
     }
 
     public Track resolve(String query) throws Exception {

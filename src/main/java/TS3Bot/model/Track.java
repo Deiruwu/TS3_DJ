@@ -22,6 +22,14 @@ public class Track {
         this.duration = duration;
     }
 
+    public Track(String uuid, String title, String artist, String path, long duration) {
+        this.uuid = uuid;
+        this.title = title;
+        this.artist = artist;
+        this.path = path;
+        this.duration = duration;
+    }
+
     public void setPath(String path) {
         this.path = path;
     }
