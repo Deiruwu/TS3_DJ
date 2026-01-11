@@ -26,18 +26,6 @@ Instalación de dependencias (Debian/Ubuntu)
 sudo apt update
 sudo apt install maven python3-full python3-pip git ffmpeg tmux -y
 
-Nota importante sobre yt-dlp
-
-No uses la versión de apt. YouTube actualiza sus protocolos constantemente y la versión de los repositorios suele quedar obsoleta, provocando errores de descarga. Instala el binario oficial directamente:
-
-sudo wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/local/bin/yt-dlp
-sudo chmod a+rx /usr/local/bin/yt-dlp
-
-Se recomienda configurar un cronjob para ejecutar sudo yt-dlp -U periódicamente.
-Instalación del Proyecto
-
-    Clona el repositorio:
-    Bash
 
 git clone <URL_DEL_REPO>
 cd TS3_Music_Bot
