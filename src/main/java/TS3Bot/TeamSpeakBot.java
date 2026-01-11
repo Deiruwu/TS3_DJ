@@ -127,6 +127,7 @@ public class TeamSpeakBot implements TS3Listener {
 
         new Thread(() -> {
             try {
+                reply("[color=orange][b]Buscando...[/b][/color]");
                 Track track = musicManager.resolve(query);
                 player.queue(track);
 
