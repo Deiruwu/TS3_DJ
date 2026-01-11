@@ -39,7 +39,7 @@ public class YouTubeHelper {
                     json.get("id").getAsString(),
                     json.get("title").getAsString(),
                     json.get("artist").getAsString(),
-                    json.has("album") ? json.get("album").getAsString() : "Single",
+                    json.get("album").getAsString(),
                     null,
                     duration
             );

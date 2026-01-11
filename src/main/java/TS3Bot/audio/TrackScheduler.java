@@ -1,5 +1,6 @@
 package TS3Bot.audio;
 
+import TS3Bot.model.QueuedTrack;
 import TS3Bot.model.Track;
 import com.github.manevolent.ts3j.audio.Microphone;
 import com.github.manevolent.ts3j.enums.CodecType;
@@ -10,28 +11,46 @@ import java.util.LinkedList;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class TrackScheduler implements Microphone {
+
+    public interface TrackStartListener {
+        void onTrackStart(String userUid, String userName, String trackUuid);
+    }
+
     private final CustomOpusEncoder encoder;
     private final ConcurrentLinkedQueue<byte[]> packetQueue;
+    private final LinkedList<QueuedTrack> songQueue = new LinkedList<>();
 
-    // Ahora la cola es de objetos Track
-    private final LinkedList<Track> songQueue = new LinkedList<>();
-
-    private volatile Track currentTrack = null;
+    private volatile QueuedTrack currentTrack = null;
     private Thread audioThread;
     private volatile boolean playing = false;
     private volatile boolean stopSignal = false;
     private volatile float volume = 1.0f;
 
-    private static final int MAX_BUFFER_SIZE = 150; // ~3 segundos de buffer
+    private TrackStartListener trackStartListener;
+
+    private static final int MAX_BUFFER_SIZE = 150;
 
     public TrackScheduler() {
         this.encoder = new CustomOpusEncoder();
         this.packetQueue = new ConcurrentLinkedQueue<>();
     }
 
-    public void queue(Track track) {
+    public void setTrackStartListener(TrackStartListener listener) {
+        this.trackStartListener = listener;
+    }
+
+    public void queue(QueuedTrack queuedTrack) {
         synchronized (songQueue) {
-            songQueue.add(track);
+            songQueue.add(queuedTrack);
+            if (currentTrack == null && !playing) {
+                next();
+            }
+        }
+    }
+
+    public void queueNext(QueuedTrack queuedTrack) {
+        synchronized (songQueue) {
+            songQueue.addFirst(queuedTrack);
             if (currentTrack == null && !playing) {
                 next();
             }
@@ -50,37 +69,45 @@ public class TrackScheduler implements Microphone {
         }
     }
 
-    private void startStreaming(Track track) {
+    private void startStreaming(QueuedTrack queuedTrack) {
         stopSignal = false;
         playing = true;
+
+        Track track = queuedTrack.getTrack();
+
+        if (trackStartListener != null) {
+            trackStartListener.onTrackStart(
+                    queuedTrack.getRequestedByUid(),
+                    queuedTrack.getRequestedByName(),
+                    track.getUuid()
+            );
+        }
 
         audioThread = new Thread(() -> {
             Process ffmpeg = null;
             try {
                 System.out.println("Reproduciendo: " + track);
 
-                // COMANDO FFMPEG PARA DECODIFICAR EN VIVO
                 ProcessBuilder pb = new ProcessBuilder(
                         "ffmpeg",
-                        "-i", track.getPath(),     // Archivo comprimido
-                        "-f", "s16le",             // Salida: PCM Raw 16-bit
-                        "-ac", "2",                // Stereo
-                        "-ar", "48000",            // 48kHz
-                        "-af", "loudnorm=I=-16:TP=-1.5:LRA=11", // Normalización en vivo
-                        "-loglevel", "quiet",      // Silencio en consola
-                        "pipe:1"                   // Salida a StdOut (Java)
+                        "-i", track.getPath(),
+                        "-f", "s16le",
+                        "-ac", "2",
+                        "-ar", "48000",
+                        "-af", "loudnorm=I=-16:TP=-1.5:LRA=11",
+                        "-loglevel", "quiet",
+                        "pipe:1"
                 );
 
                 ffmpeg = pb.start();
                 InputStream stream = ffmpeg.getInputStream();
 
-                byte[] buffer = new byte[3840]; // 20ms de audio
+                byte[] buffer = new byte[3840];
                 int bytesRead;
 
                 while (playing && !stopSignal && (bytesRead = stream.read(buffer)) != -1) {
                     short[] pcm = bytesToShorts(buffer);
 
-                    // Aplicar volumen digitalmente
                     if (volume != 1.0f) {
                         for (int i = 0; i < pcm.length; i++) {
                             int val = (int) (pcm[i] * volume);
@@ -91,7 +118,6 @@ public class TrackScheduler implements Microphone {
 
                     packetQueue.add(encoder.encode(pcm));
 
-                    // Control de flujo: Si tenemos mucho audio listo, esperamos para no saturar RAM
                     while (packetQueue.size() >= MAX_BUFFER_SIZE && playing) {
                         Thread.sleep(5);
                     }
@@ -100,16 +126,15 @@ public class TrackScheduler implements Microphone {
             } catch (Exception e) {
                 System.err.println("Error streaming: " + e.getMessage());
             } finally {
-                if (ffmpeg != null) ffmpeg.destroyForcibly(); // Matamos ffmpeg al terminar
+                if (ffmpeg != null) ffmpeg.destroyForcibly();
                 if (!stopSignal && playing) {
-                    next(); // Pasamos a la siguiente automáticamente
+                    next();
                 }
             }
         });
         audioThread.start();
     }
 
-    // --- UTILS ---
     private short[] bytesToShorts(byte[] buffer) {
         short[] shorts = new short[buffer.length / 2];
         for (int i = 0; i < shorts.length; i++) {
@@ -133,22 +158,33 @@ public class TrackScheduler implements Microphone {
         currentTrack = null;
     }
 
-    public String getCurrentSongName() { return currentTrack != null ? currentTrack.getTitle() : "Nada"; }
+    public String getCurrentSongName() {
+        return currentTrack != null ? currentTrack.getTrack().getTitle() : "Nada";
+    }
 
     public String getQueueDetails() {
         synchronized(songQueue) {
             if (songQueue.isEmpty()) return "Cola vacía.";
             StringBuilder sb = new StringBuilder();
             int i = 1;
-            for(Track t : songQueue) {
-                sb.append(i++).append(". ").append(t.getTitle()).append("\n");
+            for(QueuedTrack qt : songQueue) {
+                sb.append(i++).append(". ").append(qt.getTrack().getTitle()).append("\n");
                 if(i > 10) { sb.append("... y más."); break; }
             }
             return sb.toString();
         }
     }
 
-    // Microphone Interface
+    public boolean removeFromQueue(int index) {
+        synchronized(songQueue) {
+            if (index >= 0 && index < songQueue.size()) {
+                songQueue.remove(index);
+                return true;
+            }
+            return false;
+        }
+    }
+
     public boolean isReady() { return !packetQueue.isEmpty() || playing; }
     public byte[] provide() { byte[] d = packetQueue.poll(); return d != null ? d : new byte[0]; }
     public CodecType getCodec() { return CodecType.OPUS_MUSIC; }

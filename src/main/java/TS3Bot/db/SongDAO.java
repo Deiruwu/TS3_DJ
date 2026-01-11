@@ -6,7 +6,7 @@ import java.sql.*;
 public class SongDAO {
 
     public void saveTrack(Track track) {
-        String sql = "INSERT OR REPLACE INTO songs(uuid, title, artist, path, duration) VALUES(?,?,?,?,?)";
+        String sql = "INSERT OR REPLACE INTO songs(uuid, title, artist, album, duration, path) VALUES(?,?,?,?,?,?)";
 
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -14,8 +14,9 @@ public class SongDAO {
             pstmt.setString(1, track.getUuid());
             pstmt.setString(2, track.getTitle());
             pstmt.setString(3, track.getArtist());
-            pstmt.setString(4, track.getPath());
+            pstmt.setString(4, track.getAlbum());
             pstmt.setLong(5, track.getDuration());
+            pstmt.setString(6, track.getPath());
 
             pstmt.executeUpdate();
         } catch (SQLException e) {

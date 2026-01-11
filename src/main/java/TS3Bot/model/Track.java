@@ -10,9 +10,6 @@ public class Track {
     private String path;      // Puede ser null al principio
     private long duration;
 
-    // Campo volátil para saber quién la pidió
-    private String requester = "Sistema";
-
     public Track(String uuid, String title, String artist, String album, String path, long duration) {
         this.uuid = uuid;
         this.title = title;
@@ -34,10 +31,6 @@ public class Track {
         this.path = path;
     }
 
-    // Getters y Setter de Requester (igual que antes)
-    public void setRequester(String requester) { this.requester = requester; }
-    public String getRequester() { return requester; }
-
     public String getUuid() { return uuid; }
     public String getTitle() { return title; }
     public String getArtist() { return artist; }
@@ -45,7 +38,20 @@ public class Track {
     public String getPath() { return path; }
     public long getDuration() { return duration; }
 
-    // Check de seguridad para no crashear si path es null
+    public String getFormattedDuration() {
+        long totalSeconds = this.duration;
+
+        long hours = totalSeconds / 3600;
+        long minutes = (totalSeconds % 3600) / 60;
+        long seconds = totalSeconds % 60;
+
+        if (hours > 0) {
+            return String.format("%d:%02d:%02d", hours, minutes, seconds);
+        } else {
+            return String.format("%02d:%02d", minutes, seconds);
+        }
+    }
+
     public File getFile() {
         return (path != null) ? new File(path) : null;
     }

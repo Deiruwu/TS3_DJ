@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS songs (
                                      uuid TEXT PRIMARY KEY,
                                      title TEXT,
                                      artist TEXT,
+                                     album TEXT,
                                      duration INTEGER,
                                      path TEXT,
                                      added_at DATETIME DEFAULT CURRENT_TIMESTAMP

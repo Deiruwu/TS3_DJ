@@ -8,6 +8,7 @@ import TS3Bot.db.SongDAO;
 import TS3Bot.db.StatsDAO;
 import TS3Bot.model.Playlist;
 import TS3Bot.model.PlaylistType;
+import TS3Bot.model.QueuedTrack;
 import TS3Bot.model.Track;
 import com.github.manevolent.ts3j.event.TS3Listener;
 import com.github.manevolent.ts3j.event.TextMessageEvent;
@@ -67,7 +68,15 @@ public class TeamSpeakBot implements TS3Listener {
 
         this.allPlaylists = playlistDao.getAllPlaylists();
 
+        setupTrackListener();
         registerCommands();
+    }
+
+    private void setupTrackListener() {
+        player.setTrackStartListener((userUid, userName, trackUuid) -> {
+            statsDao.registrarReproduccion(userUid, trackUuid);
+            ensureUserPersonalPlaylist(userUid, userName, trackUuid);
+        });
     }
 
     private void refreshPlaylists() {
@@ -75,20 +84,32 @@ public class TeamSpeakBot implements TS3Listener {
     }
 
     private void registerCommands() {
-        register("!skip", (args) -> { reply("[color=orange][b]»[/b][/color] Saltando canción..."); player.next(); }, "!next", "!s");
-        register("!stop", (args) -> { reply("[color=red][b]■[/b][/color] Música detenida."); player.shutdown(); }, "!leave");
+        register("!skip", (args) -> {
+            reply("[color=orange]Saltando...[/color]");
+            player.next();
+        }, "!next", "!s");
+
+        register("!stop", (args) -> {
+            reply("[color=red]Detenido.[/color]");
+            player.shutdown();
+        }, "!leave");
+
         register("!queue", (args) -> {
             String actual = player.getCurrentSongName();
-            reply("[color=blue][b]♪ Sonando ahora:[/b][/color] [i]" + actual + "[/i]");
+            reply("[color=blue]Sonando:[/color] [i]" + actual + "[/i]");
             reply(player.getQueueDetails());
-        }, "!q", "!list");
+        }, "!q", "!cola");
 
-        register("!vol", this::handleVolume, "!v");
-        register("!shuffle", (args) -> { player.shuffle(); reply("[color=purple][b]🎲[/b][/color] ¡Cola mezclada!"); }, "!mix");
+        register("!vol", this::handleVolume, "!v", "!volumen");
+        register("!shuffle", (args) -> {
+            player.shuffle();
+            reply("[color=purple]Cola mezclada.[/color]");
+        }, "!mix", "!mezclar");
 
-        register("!listp", (args) -> handleListPlaylists(), "!playlists");
+        register("!remove", this::handleRemove, "!rm", "!del");
+        register("!listp", (args) -> handleListPlaylists(), "!playlists", "!lp");
 
-        register("!help", (args) -> handleHelp(), "!h", "!ayuda");
+        register("!help", (args) -> handleHelp(), "!h", "!ayuda", "!comandos");
     }
 
     private void register(String command, Consumer<String> action, String... aliases) {
@@ -101,7 +122,6 @@ public class TeamSpeakBot implements TS3Listener {
         if (e.getInvokerId() == client.getClientId()) return;
 
         String raw = e.getMessage().trim();
-
         raw = raw.replaceAll("\\[/?(?i)URL\\]", "");
 
         if (!raw.startsWith("!")) return;
@@ -113,8 +133,9 @@ public class TeamSpeakBot implements TS3Listener {
         String args = parts.length > 1 ? parts[1] : "";
 
         switch (label){
-            case "!p", "!play" -> handlePlay(args, userUid, userName);
-            case "!pp" -> handlePlayPlaylist(args);
+            case "!p", "!play" -> handlePlay(args, userUid, userName, false);
+            case "!pn", "!playnext" -> handlePlay(args, userUid, userName, true);
+            case "!pp" -> handlePlayPlaylist(args, userUid, userName);
             case "!createp" -> handleCreatePlaylist(args, userUid);
             case "!addp" -> handleAddSongToPlaylist(args, userUid);
             default -> {
@@ -124,23 +145,26 @@ public class TeamSpeakBot implements TS3Listener {
         }
     }
 
-    private void handlePlay(String query, String userUid, String userName) {
+    private void handlePlay(String query, String userUid, String userName, boolean insertNext) {
         if (query.isEmpty()) return;
 
         new Thread(() -> {
             try {
-                reply("[color=orange][b]Buscando...[/b][/color]");
+                reply("[color=gray]Buscando...[/color]");
                 Track track = musicManager.resolve(query);
-                player.queue(track);
+                QueuedTrack queuedTrack = new QueuedTrack(track, userUid, userName);
 
-                statsDao.registrarReproduccion(userUid, track.getUuid());
-                ensureUserPersonalPlaylist(userUid, userName, track.getUuid());
-
-                reply("[color=purple][b]»[/b][/color] Reproduciendo: [b]" + track + "[/b]");
+                if (insertNext) {
+                    player.queueNext(queuedTrack);
+                    reply("[color=lime]Siguiente:[/color] [i]" + track + " -> " +track.getFormattedDuration() + "[/i]");
+                } else {
+                    player.queue(queuedTrack);
+                    reply("[color=blue]Añadido:[/color] [i]" + track + " -> " +track.getFormattedDuration() + "[/i]");
+                }
 
             } catch (Exception e) {
                 e.printStackTrace();
-                reply("[color=red][b]✘ Error:[/b][/color] " + e.getMessage());
+                reply("[color=red]Error: " + e.getMessage() + "[/color]");
             }
         }).start();
     }
@@ -174,37 +198,44 @@ public class TeamSpeakBot implements TS3Listener {
         }
     }
 
-    private void handlePlayPlaylist(String input) {
-        if (input.isEmpty()) { reply("[color=gray]Uso: !pp <nombre o número>[/color]"); return; }
+    private void handlePlayPlaylist(String input, String userUid, String userName) {
+        if (input.isEmpty()) {
+            reply("[color=gray]Uso: !pp <nombre|#>[/color]");
+            return;
+        }
 
         new Thread(() -> {
             Playlist playlist = resolvePlaylist(input);
             if (playlist == null) {
-                reply("[color=red][b]![/b][/color] Playlist no encontrada.");
+                reply("[color=red]Playlist no encontrada.[/color]");
                 return;
             }
 
             List<String> uuids = playlistDao.getTrackUuidsFromPlaylist(playlist);
-            if (uuids.isEmpty()) { reply("[color=red][b]![/b][/color] Playlist vacía o inexistente."); return; }
+            if (uuids.isEmpty()) {
+                reply("[color=red]Playlist vacía.[/color]");
+                return;
+            }
 
-            reply("[color=blue][b]⌛[/b][/color] Se añadieron [b]" + uuids.size() + "[/b] canciones a la cola...");
+            reply("[color=blue]Cargando " + uuids.size() + " canciones...[/color]");
 
             for (String uuid : uuids) {
                 try {
                     Track track = musicManager.resolve(uuid);
-                    player.queue(track);
+                    QueuedTrack queuedTrack = new QueuedTrack(track, userUid, userName);
+                    player.queue(queuedTrack);
                 } catch (Exception ignored) {
-                    System.err.println("Falló carga de track en playlist: " + uuid);
+                    System.err.println("Falló carga de track: " + uuid);
                 }
             }
-            reply("[color=green][b]✓[/b][/color] Playlist cargada.");
+            reply("[color=lime]Playlist cargada.[/color]");
         }).start();
     }
 
     private void handleAddSongToPlaylist(String args, String userUid) {
         String[] parts = args.split("\\s+", 2);
         if (parts.length < 2) {
-            reply("[color=gray]Uso: !addp <nombre o número> <Canción>[/color]");
+            reply("[color=gray]Uso: !addp <nombre|#> <canción>[/color]");
             return;
         }
 
@@ -212,40 +243,48 @@ public class TeamSpeakBot implements TS3Listener {
             try {
                 Playlist playlist = resolvePlaylist(parts[0]);
                 if (playlist == null) {
-                    reply("[color=red][b]![/b][/color] Playlist no encontrada.");
+                    reply("[color=red]Playlist no encontrada.[/color]");
                     return;
                 }
 
                 Track track = musicManager.resolve(parts[1]);
-
                 playlistDao.addSongToPlaylist(playlist.getId(), track.getUuid());
-                reply("[color=green][b]+[/b][/color] [i]" + track.getTitle() + "[/i] añadida a la playlist [b]" + playlist.getName() + "[/b]");
+
+                reply("[color=lime]Añadido a[/color] [b]" + playlist.getName() + "[/b]");
             } catch (Exception e) {
-                reply("[color=red][b]✘ Error:[/b][/color] " + e.getMessage());
+                reply("[color=red]Error: " + e.getMessage() + "[/color]");
             }
         }).start();
     }
 
     private void handleCreatePlaylist(String name, String userUid) {
-        if (name.isEmpty()) { reply("[color=gray]Uso: !createp <nombre>[/color]"); return; }
+        if (name.isEmpty()) {
+            reply("[color=gray]Uso: !createp <nombre>[/color]");
+            return;
+        }
+
         int id = playlistDao.createPlaylist(name, userUid, PlaylistType.USER);
         if (id != -1) {
             refreshPlaylists();
-            reply("[color=green][b]✓[/b][/color] Playlist [b]'" + name + "'[/b] creada. [i](ID: " + id + ")[/i]");
+            reply("[color=lime]Playlist creada:[/color] [b]" + name + "[/b]");
         } else {
-            reply("[color=red][b]✘ Error:[/b][/color] Nombre duplicado o error DB.");
+            reply("[color=red]Error: nombre duplicado.[/color]");
         }
     }
 
     private void handleListPlaylists() {
         if (allPlaylists.isEmpty()) {
-            reply("[color=gray]No hay playlists. Usa !createp <nombre>[/color]");
+            reply("[color=gray]No hay playlists. Usa !createp[/color]");
             return;
         }
-        reply("[color=blue][b]======= PLAYLISTS =======[/b][/color]");
+
+        reply(" ");
+        reply("[color=blue][b]PLAYLISTS[/b][/color]");
         for (int i = 0; i < allPlaylists.size(); i++) {
-            reply("[color=darkgreen]\t•[/color] " + allPlaylists.get(i).getName() + " [i](#" + (i + 1) + ")[/i]");
+            String name = allPlaylists.get(i).getName();
+            reply("  [color=purple]#" + (i + 1) + "[/color] " + name);
         }
+        reply(" ");
     }
 
     private Playlist resolvePlaylist(String input) {
@@ -264,27 +303,51 @@ public class TeamSpeakBot implements TS3Listener {
         return null;
     }
 
+    private void handleRemove(String args) {
+        try {
+            int index = Integer.parseInt(args) - 1;
+            if (player.removeFromQueue(index)) {
+                reply("[color=orange]Canción #" + (index + 1) + " eliminada.[/color]");
+            } else {
+                reply("[color=red]Índice inválido.[/color]");
+            }
+        } catch (Exception e) {
+            reply("[color=gray]Uso: !remove <#>[/color]");
+        }
+    }
+
     private void handleVolume(String args) {
         try {
             int vol = Integer.parseInt(args);
             player.setVolume(vol);
             saveVolumeConfig(vol);
-            reply("[color=blue][b]🔊 Volumen:[/b][/color] [b]" + vol + "%[/b]");
-        } catch (Exception e) { reply("[color=gray]Uso: !vol 0-100[/color]"); }
+            reply("[color=blue]Volumen:[/color] " + vol + "%");
+        } catch (Exception e) {
+            reply("[color=gray]Uso: !vol <0-100>[/color]");
+        }
     }
 
     private void handleHelp() {
-        reply("[color=royalblue][b]▬▬▬▬▬▬▬▬▬▬▬▬▬▬ MUSIC BOT HELP ▬▬▬▬▬▬▬▬▬▬▬▬▬▬[/b][/color]");
-        reply("[color=darkcyan][b] REPRODUCCIÓN[/b][/color]");
-        reply("  [b]!p[/b] [i]<nombre/link>[/i] [color=gray]- Reproduce/Añade.[/color]");
-        reply("  [b]!skip[/b] [color=gray]- Siguiente pista.[/color]");
-        reply("  [b]!stop[/b] [color=gray]- Detener todo.[/color]");
-        reply("  [b]!vol[/b] [i]<0-100>[/i] [color=gray]- Volumen.[/color]");
         reply(" ");
-        reply("[color=darkcyan][b] PLAYLISTS[/b][/color]");
-        reply("  [b]!createp[/b] [i]<nombre>[/i] | [b]!addp[/b] [i]<nombre/#> <canción>[/i]");
-        reply("  [b]!pp[/b] [i]<nombre/#>[/i] | [b]!listp[/b]");
-        reply("[color=royalblue][b]▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬[/b][/color]");
+        reply("[color=blue][b]COMANDOS DEL BOT[/b][/color]");
+        reply(" ");
+        reply("[color=purple]Reproducción[/color]");
+        reply("  !play <canción> -> Añadir a la cola");
+        reply("  !pn <canción>   -> Poner como siguiente");
+        reply("  !skip           -> Saltar canción");
+        reply("  !stop           -> Detener todo");
+        reply("  !queue          -> Ver cola actual");
+        reply("  !remove <#>     -> Quitar de la cola");
+        reply("  !vol <0-100>    -> Ajustar volumen");
+        reply("  !shuffle        -> Mezclar cola");
+        reply(" ");
+        reply("[color=purple]Playlists[/color]");
+        reply("  !createp <nombre>       -> Crear playlist");
+        reply("  !addp <#|nombre> <song> -> Añadir canción");
+        reply("  !removep <#> <song#>    -> Quitar canción");
+        reply("  !pp <#|nombre>          -> Reproducir playlist");
+        reply("  !listp                  -> Ver todas");
+        reply(" ");
     }
 
     private void saveVolumeConfig(int vol) {
@@ -330,7 +393,6 @@ public class TeamSpeakBot implements TS3Listener {
         System.out.println("Conectando...");
         client.connect(address, timeout);
         client.waitForState(ClientConnectionState.CONNECTED, timeout);
-
 
         client.setMicrophone(this.player);
         System.out.println("Bot conectado.");
