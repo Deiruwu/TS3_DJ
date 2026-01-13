@@ -167,6 +167,10 @@ public class TrackScheduler implements Microphone {
         return currentTrack != null ? currentTrack.getTrack().toString() : "Sin música aún";
     }
 
+    public QueuedTrack getCurrentTrack() {
+        return currentTrack;
+    }
+
     public List<String> getQueueList() {
         synchronized(songQueue) {
             List<String> lines = new ArrayList<>();

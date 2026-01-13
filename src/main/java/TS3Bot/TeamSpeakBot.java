@@ -157,11 +157,11 @@ public class TeamSpeakBot implements TS3Listener {
             case "!playplaylist", "!pp" -> handlePlayPlaylist(args, userUid, userName);
             case "!newplaylist","!newp" -> handleCreatePlaylist(args, userUid);
             case "!addtoplaylist","!addp" -> handleAddSongToPlaylist(args, userUid);
-//            case "!removetoplaylist", "!rmp" ->
+            case "!removetoplaylist", "!rmp" -> handleRemoveFromPlaylist(args, userUid);
             case "!intersect" -> handleIntersect(args);
             case "!union" -> handleUnion(args);
             case "!symdiff" -> handleSymDiff(args);
-//            case "!dislike" ->
+            case "!dislike" -> handleDislike(args, userUid, userName);
 
             case "!topsongs", "!ts" -> handleListSongsByUser(args,userUid, userName, true);
             case "!leastsongs", "!ls" -> handleListSongsByUser(args,userUid, userName, false);
@@ -289,6 +289,92 @@ public class TeamSpeakBot implements TS3Listener {
                 playlistDao.addSongToPlaylist(playlist.getId(), track.getUuid());
 
                 reply("[color=lime]Añadido a[/color] [b]" + playlist.getName() + "[/b]");
+            } catch (Exception e) {
+                reply("[color=red]Error: " + e.getMessage() + "[/color]");
+            }
+        }).start();
+    }
+
+    private void handleRemoveFromPlaylist(String args, String userUid) {
+        String[] parts = args.split("\\s+", 2);
+
+        if (parts.length < 2) {
+            reply("[color=gray]Uso: !rmp <playlist> <canción>[/color]");
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                Playlist playlist = resolvePlaylist(parts[0]);
+                if (playlist == null) {
+                    reply("[color=red]Playlist no encontrada.[/color]");
+                    return;
+                }
+
+                if (!playlist.getOwnerUid().equals(userUid)) {
+                    reply("[color=red]No tienes permiso para modificar esta playlist.[/color]");
+                    return;
+                }
+
+                Track track = musicManager.resolve(parts[1]);
+
+                boolean success = playlistDao.removeSongFromPlaylist(playlist.getId(), track.getUuid());
+
+                if (success) {
+                    reply("[color=lime]Eliminada[/color] [i]" + track.getTitle() + "[/i] [color=lime]de[/color] [b]" + playlist.getName() + "[/b]");
+                } else {
+                    reply("[color=orange]Esa canción no estaba en la playlist.[/color]");
+                }
+
+            } catch (Exception e) {
+                reply("[color=red]Error al eliminar: " + e.getMessage() + "[/color]");
+            }
+        }).start();
+    }
+
+    private void handleDislike(String args, String userUid, String userName) {
+        new Thread(() -> {
+            try {
+                String playlistName = "Música de " + userName;
+                Playlist userPlaylist = null;
+
+                // Refrescamos por si acaso
+                refreshPlaylists();
+                for (Playlist p : allPlaylists) {
+                    if (p.getName().equals(playlistName) && p.getOwnerUid().equals(userUid)) {
+                        userPlaylist = p;
+                        break;
+                    }
+                }
+
+                if (userPlaylist == null) {
+                    reply("[color=red]No tienes una playlist de favoritos todavía.[/color]");
+                    return;
+                }
+
+                Track trackToRemove;
+
+                // 2. Determinar qué canción borrar
+                if (args.isEmpty()) {
+                    // Si no hay argumentos, intentamos borrar la que está sonando ACTUALMENTE
+                    QueuedTrack current = player.getCurrentTrack(); // Asumiendo que tienes este metodo público en Scheduler
+                    if (current == null) {
+                        reply("[color=gray]Nada sonando. Uso: !dislike <canción>[/color]");
+                        return;
+                    }
+                    trackToRemove = current.getTrack();
+                } else {
+                    trackToRemove = musicManager.resolve(args);
+                }
+
+                boolean success = playlistDao.removeSongFromPlaylist(userPlaylist.getId(), trackToRemove.getUuid());
+
+                if (success) {
+                    reply("[color=green]Eliminada de tus favoritos:[/color] " + trackToRemove.getTitle());
+                } else {
+                    reply("[color=orange]Esa canción no estaba en tus favoritos.[/color]");
+                }
+
             } catch (Exception e) {
                 reply("[color=red]Error: " + e.getMessage() + "[/color]");
             }

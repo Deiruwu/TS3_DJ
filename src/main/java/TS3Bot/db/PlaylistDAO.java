@@ -49,6 +49,24 @@ public class PlaylistDAO {
         }
     }
 
+    public boolean removeSongFromPlaylist(int playlistId, String trackUuid) {
+        String sql = "DELETE FROM playlist_tracks WHERE playlist_id = ? AND track_uuid = ?";
+
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, playlistId);
+            ps.setString(2, trackUuid);
+
+            int rows = ps.executeUpdate();
+            return rows > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public List<Track> getTracksFromPlaylist(Playlist playlist) {
         List<Track> tracks = new ArrayList<>();
         String sql;
