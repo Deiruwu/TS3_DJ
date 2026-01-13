@@ -50,7 +50,7 @@ public class PlaylistDAO {
     }
 
     public boolean removeSongFromPlaylist(int playlistId, String trackUuid) {
-        String sql = "DELETE FROM playlist_tracks WHERE playlist_id = ? AND track_uuid = ?";
+        String sql = "DELETE FROM playlist_songs WHERE playlist_id = ? AND song_uuid = ?";
 
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
