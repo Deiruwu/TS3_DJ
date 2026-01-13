@@ -37,14 +37,16 @@ public class StatsDAO {
      * Obtiene el Top de canciones más escuchadas por un usuario específico.
      * Devuelve una lista de objetos PlayStats COMPLETOS (con el Track dentro).
      */
-    public List<PlayStats> getTopSongsByUser(String userUid, int limit) {
+    public List<PlayStats> getSongsByUser(String userUid, int limit, boolean descending) {
         List<PlayStats> stats = new ArrayList<>();
+
+        String order = descending ? "DESC" : "ASC";
 
         String sql = "SELECT s.*, ups.play_count, ups.last_played_at, ups.user_uid " +
                 "FROM user_play_stats ups " +
                 "JOIN songs s ON ups.song_uuid = s.uuid " +
                 "WHERE ups.user_uid = ? " +
-                "ORDER BY ups.play_count DESC " +
+                "ORDER BY ups.play_count " + order + " " +
                 "LIMIT ?";
 
         try (Connection conn = DatabaseManager.getConnection();
@@ -81,14 +83,16 @@ public class StatsDAO {
     }
 
 
-    public List<PlayStats> getGlobalTopSongs(int limit) {
+    public List<PlayStats> getGlobalSongs(int limit, boolean descending) {
         List<PlayStats> stats = new ArrayList<>();
+
+        String order = descending ? "DESC" : "ASC";
 
         String sql = "SELECT s.*, SUM(ups.play_count) as total_plays " +
                 "FROM user_play_stats ups " +
                 "JOIN songs s ON ups.song_uuid = s.uuid " +
                 "GROUP BY ups.song_uuid " +
-                "ORDER BY total_plays DESC " +
+                "ORDER BY total_plays " + order + " " +
                 "LIMIT ?";
 
         try (Connection conn = DatabaseManager.getConnection();

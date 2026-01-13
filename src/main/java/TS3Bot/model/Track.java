@@ -58,4 +58,9 @@ public class Track {
 
     @Override
     public String toString() { return title + " by " + artist; }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof Track && uuid.equals(((Track) obj).uuid);
+    }
 }

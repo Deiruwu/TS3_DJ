@@ -53,6 +53,11 @@ def start_yt_service():
                 conn.close()
                 continue
 
+            raw = False
+            if raw_data.endswith('--raw'):
+                raw_data = raw_data[:-5]
+                raw = True
+
             clean_query = re.sub(r'\[/??URL\]', '', raw_data, flags=re.IGNORECASE).strip()
             print(f"\n[Socket] Recibido: '{clean_query}'")
 
@@ -97,7 +102,12 @@ def start_yt_service():
                     unique_id = None
 
             if not unique_id:
-                results = ytm.search(search_query, filter="songs", limit=1)
+                if not raw:
+                    print("Buscando con filtro song")
+                    results = ytm.search(search_query, filter="songs", limit=1)
+                else:
+                    print("Buscando con sin filtro song")
+                    results = ytm.search(search_query, limit=1)
 
                 if results:
                     track = results[0]
@@ -106,12 +116,22 @@ def start_yt_service():
                         "id": track['videoId'],
                         "title": track['title'],
                         "artist": track['artists'][0]['name'],
-                        "duration": track.get('duration', '??:??'),
+                        "duration": track.get('duration', '0:00'),
                         "album": track.get('album', {}).get('name', "Single"),
                         "thumbnail": track['thumbnails'][-1]['url'] if 'thumbnails' in track else ""
                     }
                 else:
                     res = {"status": "error", "message": "No results found"}
+
+                dstr = res["duration"]
+                if ":" in dstr:
+                    mins = dstr.split(":")[0]
+                    secs = dstr.split(":")[1]
+                    total = int(mins) * 60 + int(secs)
+                else:
+                    total = int(dstr)
+
+                res["duration"] = str(total)
 
             pprint.pprint(res)
             conn.sendall((json.dumps(res) + "\n").encode('utf-8'))

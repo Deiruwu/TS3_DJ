@@ -5,12 +5,23 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.io.*;
 import java.net.Socket;
+import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class YouTubeHelper {
     private static final String CACHE_DIR = "cache";
     private static final String PYTHON_HOST = "127.0.0.1";
     private static final int PYTHON_PORT = 5005;
 
+    public interface DownloadListener {
+        void onDownloadStart(Track track);
+    }
+
+    private static DownloadListener downloadListener;
+
+    public static void setDownloadListener(DownloadListener listener) {
+        downloadListener = listener;
+    }
     public static Track getMetadataViaSocket(String query) throws Exception {
         try (Socket socket = new Socket(PYTHON_HOST, PYTHON_PORT);
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
@@ -22,6 +33,10 @@ public class YouTubeHelper {
             if (jsonResponse == null) throw new Exception("El servicio Python no respondió.");
 
             JsonObject json = JsonParser.parseString(jsonResponse).getAsJsonObject();
+
+            String jsonStr = json.toString();
+
+            System.out.println(jsonStr);
 
             if (!json.has("status") || !json.get("status").getAsString().equals("ok")) {
                 throw new Exception("No encontrado en YT/Spotify.");
@@ -54,6 +69,9 @@ public class YouTubeHelper {
         if (!cacheFolder.exists()) cacheFolder.mkdir();
 
         String outputTemplate = new File(cacheFolder, uuid + ".%(ext)s").getAbsolutePath();
+
+
+        if (downloadListener != null) downloadListener.onDownloadStart(track);
 
         ProcessBuilder pb = new ProcessBuilder(
                 "yt-dlp",

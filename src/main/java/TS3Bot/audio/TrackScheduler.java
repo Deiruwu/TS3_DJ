@@ -3,12 +3,18 @@ package TS3Bot.audio;
 import TS3Bot.model.QueuedTrack;
 import TS3Bot.model.Track;
 import com.github.manevolent.ts3j.audio.Microphone;
+import com.github.manevolent.ts3j.command.CommandException;
 import com.github.manevolent.ts3j.enums.CodecType;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 public class TrackScheduler implements Microphone {
 
@@ -122,7 +128,6 @@ public class TrackScheduler implements Microphone {
                         Thread.sleep(5);
                     }
                 }
-
             } catch (Exception e) {
                 System.err.println("Error streaming: " + e.getMessage());
             } finally {
@@ -159,19 +164,26 @@ public class TrackScheduler implements Microphone {
     }
 
     public String getCurrentSongName() {
-        return currentTrack != null ? currentTrack.getTrack().getTitle() : "Nada";
+        return currentTrack != null ? currentTrack.getTrack().toString() : "Sin música aún";
     }
 
-    public String getQueueDetails() {
+    public List<String> getQueueList() {
         synchronized(songQueue) {
-            if (songQueue.isEmpty()) return "Cola vacía.";
-            StringBuilder sb = new StringBuilder();
+            List<String> lines = new ArrayList<>();
+            if (songQueue.isEmpty()) {
+                lines.add("Cola vacía.");
+                return lines;
+            }
             int i = 1;
             for(QueuedTrack qt : songQueue) {
-                sb.append(i++).append(". ").append(qt.getTrack().getTitle()).append("\n");
-                if(i > 10) { sb.append("... y más."); break; }
+                String line = qt.getTrack().getTitle() + "[color=purple] by [/color] " + qt.getTrack().getArtist();
+                lines.add(line);
+                if(i > 10) {
+                    lines.add("... y " + (songQueue.size() - 10) + " más.");
+                    break;
+                }
             }
-            return sb.toString();
+            return lines;
         }
     }
 

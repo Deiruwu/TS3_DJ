@@ -1,18 +1,35 @@
 package TS3Bot.audio;
 
-import TS3Bot.db.SongDAO;
+import TS3Bot.db.TrackDAO;
 import TS3Bot.model.Track;
 import java.io.File;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MusicManager {
-    private final SongDAO dao;
+    private final TrackDAO dao;
 
     public MusicManager() {
-        this.dao = new SongDAO();
+        this.dao = new TrackDAO();
     }
 
     public Track resolve(String query) throws Exception {
         String uuid = null;
+
+        // Limpiamos espacios accidentales
+        query = query.trim();
+
+        // 0. VÍA DIRECTA (Si me pasas el ID crudo: "dQw4w9WgXcQ")
+        // Un ID de YouTube tiene exactamente 11 caracteres y solo letras/numeros/-/_
+        if (query.matches("^[a-zA-Z0-9_-]{11}$")) {
+            Track t = dao.getTrack(query);
+            // Si existe en DB y el archivo físico está ahí, retornamos YA.
+            if (t != null && t.getPath() != null && new File(t.getPath()).exists()) {
+                System.out.println("[Manager] Track encontrado (UUID Directo): " + t);
+                return t;
+            }
+            // Si no está en la DB, no pasa nada, dejamos que el código siga
+            // para que Python descargue los metadatos (Título, Artista) de ese ID.
+        }
 
         // 1. VIA RÁPIDA (Link (contiene el id))
         if (query.contains("youtube.com") || query.contains("youtu.be")) {

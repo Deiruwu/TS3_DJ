@@ -3,7 +3,7 @@ package TS3Bot.db;
 import TS3Bot.model.Track;
 import java.sql.*;
 
-public class SongDAO {
+public class TrackDAO {
 
     public void saveTrack(Track track) {
         String sql = "INSERT OR REPLACE INTO songs(uuid, title, artist, album, duration, path) VALUES(?,?,?,?,?,?)";
@@ -20,7 +20,7 @@ public class SongDAO {
 
             pstmt.executeUpdate();
         } catch (SQLException e) {
-            System.err.println("Error en SongDAO (save): " + e.getMessage());
+            System.err.println("Error en TrackDAO (save): " + e.getMessage());
         }
     }
 
@@ -37,7 +37,7 @@ public class SongDAO {
                 return mapResultSetToTrack(rs);
             }
         } catch (SQLException e) {
-            System.err.println("Error en SongDAO (get): " + e.getMessage());
+            System.err.println("Error en TrackDAO (get): " + e.getMessage());
         }
         return null;
     }

@@ -72,7 +72,7 @@ public class PlaylistDAO {
 
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
-                tracks.add(SongDAO.mapResultSetToTrack(rs));
+                tracks.add(TrackDAO.mapResultSetToTrack(rs));
             }
         } catch (SQLException e) {
             System.err.println("Error recuperando tracks de playlist: " + e.getMessage());
