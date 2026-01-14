@@ -31,7 +31,6 @@ public class PlayStats {
 
     @Override
     public String toString() {
-        return String.format("%s escuchó '%s' %d veces. Última vez: [%s]",
-                userUid, track.getTitle(), playCount, lastPlayedAt);
+        return track + " [b][color=#ff0080][" + playCount + "][/color][/b] Escuchado última vez:" + lastPlayedAt;
     }
 }

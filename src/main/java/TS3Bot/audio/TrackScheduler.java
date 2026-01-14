@@ -175,12 +175,11 @@ public class TrackScheduler implements Microphone {
         synchronized(songQueue) {
             List<String> lines = new ArrayList<>();
             if (songQueue.isEmpty()) {
-                lines.add("Cola vacía.");
                 return lines;
             }
             int i = 1;
             for(QueuedTrack qt : songQueue) {
-                String line = qt.getTrack().getTitle() + "[color=purple] by [/color] " + qt.getTrack().getArtist();
+                String line = qt.getTrack().toString();
                 lines.add(line);
                 if(i > 10) {
                     lines.add("... y " + (songQueue.size() - 10) + " más.");
@@ -191,13 +190,43 @@ public class TrackScheduler implements Microphone {
         }
     }
 
+
     public boolean removeFromQueue(int index) {
-        synchronized(songQueue) {
-            if (index >= 0 && index < songQueue.size()) {
-                songQueue.remove(index);
-                return true;
+        return removeFromQueue(index, index);
+    }
+
+    public boolean removeFromQueue(int from, int to) {
+        synchronized (songQueue) {
+            if (from < 0 || to < 0) return false;
+            if (from >= songQueue.size()) return false;
+            if (from > to) return false;
+
+            if (to >= songQueue.size()) {
+                to = songQueue.size() - 1;
             }
-            return false;
+
+            songQueue.subList(from, to + 1).clear();
+            return true;
+        }
+    }
+
+    public void clear() {
+        synchronized (songQueue) {
+            songQueue.clear();
+        }
+    }
+
+    public void skipTo(int index) {
+        synchronized (songQueue) {
+            if (index < 0 || index >= songQueue.size()) {
+                return;
+            }
+
+            if (index > 0) {
+                songQueue.subList(0, index).clear();
+            }
+
+            next();
         }
     }
 
