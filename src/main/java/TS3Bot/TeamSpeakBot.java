@@ -4,6 +4,7 @@ import TS3Bot.audio.MusicManager;
 import TS3Bot.audio.TrackScheduler;
 import TS3Bot.audio.YouTubeHelper;
 import TS3Bot.commands.*;
+import TS3Bot.commands.maintenance.DeleteCommand;
 import TS3Bot.commands.playback.*;
 import TS3Bot.commands.playlist.*;
 import TS3Bot.commands.playlist.sets.*;
@@ -97,6 +98,7 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
         commandRegistry.register(new ShuffleCommand(this));
         commandRegistry.register(new VolumeCommand(this));
         commandRegistry.register(new ClearCommand(this));
+        commandRegistry.register(new DeleteCommand(this));
 
         // Playlist commands
         commandRegistry.register(new CreatePlaylistCommand(this));
