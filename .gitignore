@@ -29,7 +29,7 @@ venv/
 
 # Configuración sensible y credenciales
 config.json
-identity_pi.ini
+*.ini
 .env
 YoutubeApi/.cache
 

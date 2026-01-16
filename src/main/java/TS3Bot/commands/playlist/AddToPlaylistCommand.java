@@ -53,7 +53,7 @@ public class AddToPlaylistCommand extends AsyncCommand {
     public void executeAsync(CommandContext ctx) {
         String[] parts = ctx.getSplitArgs(2);
         if (parts.length < 2) {
-            reply("[color=gray]Uso: " + getUsage() + "[/color]");
+            replyUsage();
             return;
         }
 
@@ -71,4 +71,5 @@ public class AddToPlaylistCommand extends AsyncCommand {
         } catch (Exception e) {
             reply("[color=red]Error: " + e.getMessage() + "[/color]");
         }
-    }}
+    }
+}

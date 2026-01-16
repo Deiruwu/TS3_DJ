@@ -12,6 +12,7 @@ import TS3Bot.config.JsonHelper;
 import TS3Bot.db.PlaylistDAO;
 import TS3Bot.db.TrackDAO;
 import TS3Bot.db.StatsDAO;
+import TS3Bot.interfaces.Replyable;
 import TS3Bot.model.*;
 import com.github.manevolent.ts3j.event.TS3Listener;
 import com.github.manevolent.ts3j.event.TextMessageEvent;
@@ -29,7 +30,7 @@ import java.io.Writer;
 import java.util.*;
 import java.util.concurrent.TimeoutException;
 
-public class TeamSpeakBot implements TS3Listener {
+public class TeamSpeakBot implements TS3Listener, Replyable {
     private final LocalTeamspeakClientSocket client;
     private final TrackScheduler player;
 
@@ -72,8 +73,13 @@ public class TeamSpeakBot implements TS3Listener {
         registerCommands();
 
         YouTubeHelper.setDownloadListener(track -> {
-            reply("[color=orange][b]Track fuera de la base de datos. Descargando...[/b][/color]");
+            replyAction("Track fuera de la base de datos. Descargando: " + track + "...");
         });
+    }
+
+    @Override
+    public TeamSpeakBot getBot() {
+        return this;
     }
 
     // ========================================
@@ -100,6 +106,7 @@ public class TeamSpeakBot implements TS3Listener {
         commandRegistry.register(new AddToPlaylistCommand(this));
         commandRegistry.register(new RemoveToPlaylistCommand(this));
         commandRegistry.register(new DislikeCommand(this));
+        commandRegistry.register(new LikeCommand(this));
 
         // Set operations
         commandRegistry.register(new IntersectCommand(this));
@@ -164,6 +171,8 @@ public class TeamSpeakBot implements TS3Listener {
             } catch (Exception e) {
                 System.err.println("Error cambiando nick: " + e.getMessage());
             }
+
+            reply("Reproduciendo: " + trackActual);
 
             if (userUid == null) return;
             if (trackUuid == null) return;
@@ -244,7 +253,7 @@ public class TeamSpeakBot implements TS3Listener {
         }
 
         if (userPlaylist == null) {
-            int newId = playlistDao.createPlaylist(playlistName, userUid, PlaylistType.FAVORITES);
+            int newId = playlistDao.createPlaylist(playlistName, userUid, userName ,PlaylistType.FAVORITES);
             if (newId != -1) {
                 refreshPlaylists();
                 for (Playlist p : allPlaylists) {

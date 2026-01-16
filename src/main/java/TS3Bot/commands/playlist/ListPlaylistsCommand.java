@@ -58,15 +58,12 @@ public class ListPlaylistsCommand extends Command {
             return;
         }
 
-        reply(" ");
         reply("[color=blue][b]Playlists Disponibles:[/b][/color]");
 
         for (int i = 0; i < allPlaylists.size(); i++) {
-            // Usar el formateador de PlaylistUtils para mostrar info
             String formatted = playlistUtils.formatPlaylistInfo(allPlaylists.get(i), i + 1);
             reply("  " + formatted);
         }
 
-        reply(" ");
     }
 }

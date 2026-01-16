@@ -46,6 +46,6 @@ public class ClearCommand extends Command {
     @Override
     public void execute(CommandContext ctx) {
         bot.getPlayer().clear();
-        reply("[color=purple]Cola de reproducción vaciada por " + ctx.getUserName() + ".[/color]");
+        replyAction("Cola de reproducción vaciada por: ", ctx.getUserName());
     }
 }

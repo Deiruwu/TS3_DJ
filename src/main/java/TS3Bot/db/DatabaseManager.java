@@ -1,5 +1,7 @@
 package TS3Bot.db;
 
+import org.sqlite.SQLiteConfig;
+
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
@@ -48,6 +50,10 @@ public class DatabaseManager {
     }
 
     public static Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(URL);
+        SQLiteConfig config = new SQLiteConfig();
+        config.enforceForeignKeys(true);
+        config.setJournalMode(SQLiteConfig.JournalMode.WAL);
+        config.setSynchronous(SQLiteConfig.SynchronousMode.NORMAL);
+        return DriverManager.getConnection(URL, config.toProperties());
     }
 }

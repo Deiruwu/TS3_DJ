@@ -1,14 +1,25 @@
 package TS3Bot.commands;
 
 import TS3Bot.TeamSpeakBot;
+import TS3Bot.interfaces.Replyable;
 
-import java.util.List;
-
-public abstract class Command {
+public abstract class Command implements Replyable {
     protected final TeamSpeakBot bot;
+
+    private static final String C_ACTION  = "Orange";    // Acciones, procesos, advertencias (Lo que te gustó)
+    private static final String C_SUCCESS = "Lime";      // Éxito brillante
+    private static final String C_ERROR   = "Red";       // Error crítico
+    private static final String C_INFO    = "#BD93F9";   // Púrpura suave (Estilo Drácula/Gótico) para textos generales
+    private static final String C_TITLE   = "DeepPink";  // Para títulos de listas o cabeceras
+    private static final String C_ACCENT    = "Purple";
 
     public Command(TeamSpeakBot bot) {
         this.bot = bot;
+    }
+
+    @Override
+    public TeamSpeakBot getBot() {
+        return bot;
     }
 
     public abstract String getName();
@@ -26,24 +37,37 @@ public abstract class Command {
         return " (".concat(aliases).concat(")");
     }
 
-    protected void reply(String message) {
-        bot.reply(message);
+    protected void replyUsage() {
+        reply("Usa: ".concat(formatUsage()));
     }
 
-    protected void replyImportant(String message) {
-        reply("[color=DeepPink][b]Action:[/b][/color] " + message);
-    }
+    protected String formatUsage() {
+        String cmdUsageStr = this.getUsage();
 
-    protected void replyList(String tittle, List<String> list) {
-        if (list.isEmpty()) return;
+        final String C_CMD  = "#BD93F9";
+        final String C_ARGS = "#777777";
+        final String C_TEXT = "#333333";
 
-        reply("[color=purple][b]" + tittle + "[/b][/color]");
-        for (int i = 0; i < list.size(); i++) {
-            reply("[b][color=purple]\t#" + (i + 1) + ".  [/color][/b]" + list.get(i));
+        String[] parts = cmdUsageStr.split(" ", 2);
+        String commandName = parts[0];
+        String rest = (parts.length > 1) ? parts[1] : "";
+
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("[b][color=").append(C_CMD).append("]")
+                .append(commandName)
+                .append("[/color][/b]");
+
+        if (!rest.isEmpty()) {
+            String styled = rest
+                    .replaceAll("<(.*?)>", "[color=" + C_ARGS + "]<$1>[/color]")
+                    .replaceAll("\\((.*?)\\)", "($1)");
+
+            sb.append(" [color=").append(C_TEXT).append("]")
+                    .append(styled)
+                    .append("[/color]");
         }
-    }
 
-    protected void replyError(String message) {
-        reply("[color=red]" + message + "[/color]");
+        return sb.toString();
     }
 }

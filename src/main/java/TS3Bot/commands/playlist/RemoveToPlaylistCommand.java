@@ -54,7 +54,7 @@ public class RemoveToPlaylistCommand extends AsyncCommand {
     @Override
     public void executeAsync(CommandContext ctx) {
         if (ctx.getArgsArray().length < 2) {
-            reply("[color=gray]Uso: " + getUsage() + "[/color]");
+            replyUsage();
             return;
         }
 

@@ -11,8 +11,9 @@ import java.util.List;
  *
  * Muestra la canción que está sonando en este momento y la lista completa
  * de canciones que están en espera para ser reproducidas.
+ * También incluye quien pidió la canción o de qué playlist proviene.
  *
- * @version 1.0
+ * @version 1.1
  */
 public class QueueCommand extends Command {
 
@@ -47,10 +48,10 @@ public class QueueCommand extends Command {
 
     @Override
     public void execute(CommandContext ctx) {
-        String actual = bot.getPlayer().getCurrentSongName();
+        String actual = bot.getPlayer().getCurrentTrack().toString();
         List<String> canciones = bot.getPlayer().getQueueList();
 
-        reply("[b][color=blue]Actualmente reproduciendo: [/color][/b]" + actual);
-        replyList("Cola", canciones);
+        reply("[b][color=blue]Estás escuchando: [/color][/b]" + actual);
+        replyList(canciones);
     }
 }

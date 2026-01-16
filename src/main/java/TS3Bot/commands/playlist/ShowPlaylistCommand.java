@@ -53,7 +53,7 @@ public class ShowPlaylistCommand extends Command {
     @Override
     public void execute(CommandContext ctx) {
         if (!ctx.hasArgs()) {
-            reply("[color=gray]Uso: " + getUsage() + "[/color]");
+            replyUsage();
             return;
         }
 

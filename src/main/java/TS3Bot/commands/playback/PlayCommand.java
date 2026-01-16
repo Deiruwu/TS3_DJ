@@ -51,13 +51,13 @@ public class PlayCommand extends AsyncCommand {
     @Override
     public void executeAsync(CommandContext ctx) {
         if (!ctx.hasArgs()) {
-            reply("[color=orange]Uso correcto: " + getUsage() + "[/color]");
+            replyUsage();
             return;
         }
 
         try {
             Track track = bot.getMusicManager().resolve(ctx.getArgs());
-            QueuedTrack queuedTrack = new QueuedTrack(track, ctx.getUserUid(), ctx.getUserName());
+            QueuedTrack queuedTrack = new QueuedTrack(track, ctx.getUserUid(), "request by "+ ctx.getUserName());
 
             bot.getPlayer().queue(queuedTrack);
             reply("[color=blue]Añadido:[/color] [i]" + track + "[/i]");

@@ -92,8 +92,6 @@ public class TrackScheduler implements Microphone {
         audioThread = new Thread(() -> {
             Process ffmpeg = null;
             try {
-                System.out.println("Reproduciendo: " + track);
-
                 ProcessBuilder pb = new ProcessBuilder(
                         "ffmpeg",
                         "-i", track.getPath(),
@@ -179,7 +177,7 @@ public class TrackScheduler implements Microphone {
             }
             int i = 1;
             for(QueuedTrack qt : songQueue) {
-                String line = qt.getTrack().toString();
+                String line = qt.getTrack() + qt.getRequestedByName();
                 lines.add(line);
                 if(i > 10) {
                     lines.add("... y " + (songQueue.size() - 10) + " más.");
@@ -208,6 +206,10 @@ public class TrackScheduler implements Microphone {
             songQueue.subList(from, to + 1).clear();
             return true;
         }
+    }
+
+    public List<QueuedTrack> getQueue() {
+        return new ArrayList<>(songQueue);
     }
 
     public void clear() {

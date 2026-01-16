@@ -19,6 +19,6 @@ public class QueuedTrack {
 
     @Override
     public String toString() {
-        return track + " (Solicitado por " + requestedByName + ")";
+        return track + " - " +  requestedByName;
     }
 }

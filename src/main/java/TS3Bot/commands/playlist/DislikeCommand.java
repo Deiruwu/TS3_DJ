@@ -56,7 +56,6 @@ public class DislikeCommand extends AsyncCommand {
 
     @Override
     public void executeAsync(CommandContext ctx) {
-        // Buscar o crear playlist de favoritos usando utils
         Playlist favoritesPlaylist = playlistUtils.ensureUserFavoritesPlaylist(
                 ctx.getUserUid(),
                 ctx.getUserName()

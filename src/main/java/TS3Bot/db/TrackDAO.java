@@ -51,4 +51,17 @@ public class TrackDAO {
                 rs.getLong("duration")
         );
     }
+
+    public boolean deleteTrack(String uuid) {
+        String sql = "DELETE FROM songs WHERE uuid = ?";
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, uuid);
+            int affected = pstmt.executeUpdate();
+            return affected > 0;
+        } catch (SQLException e) {
+            System.err.println("Error en TrackDAO (delete): " + e.getMessage());
+        }
+        return false;
+    }
 }

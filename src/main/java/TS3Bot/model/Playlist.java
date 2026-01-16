@@ -7,14 +7,16 @@ public class Playlist {
     private int id;
     private String name;
     private String ownerUid;
+    private String ownerName;
     private PlaylistType type;
 
     private List<Track> tracks = new ArrayList<>();
 
-    public Playlist(int id, String name, String ownerUid, PlaylistType type) {
+    public Playlist(int id, String name, String ownerUid, String ownerName,PlaylistType type) {
         this.id = id;
         this.name = name;
         this.ownerUid = ownerUid;
+        this.ownerName = ownerName;
         this.type = type;
     }
 
@@ -22,6 +24,7 @@ public class Playlist {
     public int getId() { return id; }
     public String getName() { return name; }
     public String getOwnerUid() { return ownerUid; }
+    public String getOwnerName() { return ownerName; }
     public PlaylistType getType() { return type; }
 
     public List<Track> getTracks() { return tracks; }

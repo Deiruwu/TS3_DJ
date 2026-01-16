@@ -9,18 +9,18 @@ import java.util.List;
 
 public class PlaylistDAO {
 
-    public int createPlaylist(String name, String ownerUid, PlaylistType type) {
-        String sql = "INSERT INTO playlists(name, owner_uid, type) VALUES(?,?,?)";
+    public int createPlaylist(String name, String ownerUid, String ownerName, PlaylistType type) {
+        String sql = "INSERT INTO playlists(name, owner_uid, owner_name, type) VALUES(?,?,?,?)";
 
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, name);
             pstmt.setString(2, ownerUid);
-            pstmt.setString(3, type.toString());
+            pstmt.setString(3, ownerName);
+            pstmt.setString(4, type.toString());
             pstmt.executeUpdate();
 
-            // Recuperar el último ID insertado
             try (Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery("SELECT last_insert_rowid()")) {
                 if (rs.next()) return rs.getInt(1);
@@ -140,6 +140,7 @@ public class PlaylistDAO {
                         rs.getInt("id"),
                         rs.getString("name"),
                         rs.getString("owner_uid"),
+                        rs.getString("owner_name"),
                         PlaylistType.valueOf(rs.getString("type"))
                 );
             }
@@ -163,6 +164,7 @@ public class PlaylistDAO {
                         rs.getInt("id"),
                         rs.getString("name"),
                         rs.getString("owner_uid"),
+                        rs.getString("owner_name"),
                         PlaylistType.valueOf(rs.getString("type"))
                 ));
             }

@@ -18,7 +18,8 @@ import java.util.List;
  * Verifica la propiedad de la playlist y asegura la integridad de los archivos de audio.
  *
  * @version 1.0
- */public class PlayPlaylistCommand extends AsyncCommand {
+ */
+public class PlayPlaylistCommand extends AsyncCommand {
     private final PlaylistUtils playlistUtils;
 
     public PlayPlaylistCommand(TeamSpeakBot bot) {
@@ -54,7 +55,7 @@ import java.util.List;
     @Override
     public void executeAsync(CommandContext ctx) {
         if (!ctx.hasArgs()) {
-            reply("[color=gray]Uso: " + getUsage() + "[/color]");
+            replyUsage();
             return;
         }
 
@@ -96,7 +97,6 @@ import java.util.List;
 
                         bot.getPlayer().queue(queuedTrack);
                         loaded++;
-                        Thread.sleep(50); // Anti-throttle
                     }
                 } catch (Exception e) {
                     System.err.println("Error cargando track: " + t.getTitle());

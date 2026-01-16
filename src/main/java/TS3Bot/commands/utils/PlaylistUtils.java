@@ -84,7 +84,7 @@ public class PlaylistUtils {
 
         // Crear nueva playlist de favoritos
         String playlistName = "Música de " + userName;
-        int newId = bot.getPlaylistManager().createPlaylist(playlistName, userUid, PlaylistType.FAVORITES);
+        int newId = bot.getPlaylistManager().createPlaylist(playlistName, userUid, userName,PlaylistType.FAVORITES);
 
         if (newId == -1) return null; // Error al crear
 

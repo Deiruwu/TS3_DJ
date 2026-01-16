@@ -10,10 +10,6 @@ import java.io.File;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * Clase de utilidad para manejar operaciones de teoría de conjuntos en playlists.
- * Contiene la lógica para Intersección, Unión y Diferencia Simétrica.
- */
 public class PlaylistSetUtils {
 
     private final TeamSpeakBot bot;
@@ -22,20 +18,19 @@ public class PlaylistSetUtils {
         this.bot = bot;
     }
 
-    // --- MÉTODOS PÚBLICOS (Handlers) ---
-
     public void handleIntersect(CommandContext ctx) {
         new Thread(() -> {
-            List<List<Track>> lists = getPreprocessedPlaylists(ctx.getArgs());
-            if (lists.size() < 2) {
-                bot.reply("[color=red]Intersect requiere al menos 2 playlists válidas.[/color]");
+            List<Playlist> selectedPlaylists = resolvePlaylists(ctx.getArgs());
+
+            if (selectedPlaylists.size() < 2) {
+                bot.replyError("Intersect requiere al menos 2 playlists válidas.");
                 return;
             }
 
-            // Mapa de Frecuencia: UUID -> Cuántas playlists lo tienen
-            Map<String, Integer> frequencyMap = new HashMap<>();
+            Map<String, Set<String>> creditsMap = buildCreditsMap(selectedPlaylists);
+            List<List<Track>> lists = extractTracksFromPlaylists(selectedPlaylists);
 
-            // Llenamos el mapa
+            Map<String, Integer> frequencyMap = new HashMap<>();
             for (List<Track> playlist : lists) {
                 Set<String> uniqueInPlaylist = new HashSet<>();
                 for (Track t : playlist) uniqueInPlaylist.add(t.getUuid());
@@ -48,7 +43,6 @@ public class PlaylistSetUtils {
             int totalPlaylists = lists.size();
             List<Track> finalQueue = new ArrayList<>();
 
-            // Iteramos sobre la primera lista barajada para mantener orden aleatorio
             for (Track t : lists.get(0)) {
                 if (frequencyMap.getOrDefault(t.getUuid(), 0) == totalPlaylists) {
                     finalQueue.add(t);
@@ -56,25 +50,28 @@ public class PlaylistSetUtils {
             }
 
             if (finalQueue.isEmpty()) {
-                bot.reply("[color=orange]No hay canciones en común (Intersección vacía).[/color]");
+                bot.replyAction("No hay canciones en común (Intersección vacía).");
             } else {
-                queueTracksAsync(ctx, finalQueue);
+                queueTracksAsync(finalQueue, creditsMap);
             }
         }).start();
     }
 
     public void handleUnion(CommandContext ctx) {
         new Thread(() -> {
-            List<List<Track>> lists = getPreprocessedPlaylists(ctx.getArgs());
-            if (lists.isEmpty()) {
-                bot.reply("[color=red]No se encontraron playlists válidas.[/color]");
+            List<Playlist> selectedPlaylists = resolvePlaylists(ctx.getArgs());
+
+            if (selectedPlaylists.isEmpty()) {
+                bot.replyError("No se encontraron playlists válidas.");
                 return;
             }
+
+            Map<String, Set<String>> creditsMap = buildCreditsMap(selectedPlaylists);
+            List<List<Track>> lists = extractTracksFromPlaylists(selectedPlaylists);
 
             List<Track> finalQueue = new ArrayList<>();
             Set<String> seenUuids = new HashSet<>();
 
-            // Round-Robin
             List<Iterator<Track>> iterators = new ArrayList<>();
             for (List<Track> l : lists) iterators.add(l.iterator());
 
@@ -84,7 +81,7 @@ public class PlaylistSetUtils {
                 for (Iterator<Track> it : iterators) {
                     if (it.hasNext()) {
                         Track t = it.next();
-                        if (seenUuids.add(t.getUuid())) { // Solo si es nueva
+                        if (seenUuids.add(t.getUuid())) {
                             finalQueue.add(t);
                         }
                         elementsRemaining = true;
@@ -92,17 +89,21 @@ public class PlaylistSetUtils {
                 }
             }
 
-            queueTracksAsync(ctx, finalQueue);
+            queueTracksAsync(finalQueue, creditsMap);
         }).start();
     }
 
     public void handleSymDiff(CommandContext ctx) {
         new Thread(() -> {
-            List<List<Track>> lists = getPreprocessedPlaylists(ctx.getArgs());
-            if (lists.size() < 2) {
-                bot.reply("[color=red]SymDiff requiere al menos 2 playlists válidas.[/color]");
+            List<Playlist> selectedPlaylists = resolvePlaylists(ctx.getArgs());
+
+            if (selectedPlaylists.size() < 2) {
+                bot.replyError("SymDiff requiere al menos 2 playlists válidas.");
                 return;
             }
+
+            Map<String, Set<String>> creditsMap = buildCreditsMap(selectedPlaylists);
+            List<List<Track>> lists = extractTracksFromPlaylists(selectedPlaylists);
 
             Map<String, Integer> frequencyMap = new HashMap<>();
             for (List<Track> playlist : lists) {
@@ -129,7 +130,6 @@ public class PlaylistSetUtils {
                         String uuid = t.getUuid();
 
                         if (!processedUuids.contains(uuid)) {
-                            // Solo agregamos si su frecuencia es 1 (única en su lista)
                             if (frequencyMap.getOrDefault(uuid, 0) == 1) {
                                 finalQueue.add(t);
                             }
@@ -141,20 +141,16 @@ public class PlaylistSetUtils {
             }
 
             if (finalQueue.isEmpty()) {
-                bot.reply("[color=orange]No hay canciones únicas. Todas se repiten en otras playlists.[/color]");
+                bot.replyAction("No hay canciones únicas. Todas se repiten en otras playlists.");
             } else {
-                queueTracksAsync(ctx, finalQueue);
+                queueTracksAsync(finalQueue, creditsMap);
             }
         }).start();
     }
 
-    // --- HELPERS PRIVADOS ---
-
-    private List<List<Track>> getPreprocessedPlaylists(String args) {
-        List<Playlist> allPlaylists = bot.getAllPlaylists(); // Asumiendo este getter
-
-        // 1. Parsear IDs únicos
-        List<Playlist> playlists = Arrays.stream(args.split("\\s+"))
+    private List<Playlist> resolvePlaylists(String args) {
+        List<Playlist> allPlaylists = bot.getAllPlaylists();
+        return Arrays.stream(args.split("\\s+"))
                 .map(s -> {
                     try { return Integer.parseInt(s.trim()) - 1; } catch (Exception e) { return -1; }
                 })
@@ -162,17 +158,13 @@ public class PlaylistSetUtils {
                 .map(allPlaylists::get)
                 .distinct()
                 .collect(Collectors.toList());
+    }
 
+    private List<List<Track>> extractTracksFromPlaylists(List<Playlist> playlists) {
         List<List<Track>> result = new ArrayList<>();
-
-        // 2. Cargar Tracks y BARAJAR
         for (Playlist p : playlists) {
-            // Asumiendo getter en manager o dao
             List<Track> tracks = bot.getPlaylistManager().getTracksFromPlaylist(p);
-            // NOTA: Si usas getTracksFromPlaylist(p), ajusta la línea de arriba.
-
             if (tracks != null && !tracks.isEmpty()) {
-                // Hacemos una copia para no desordenar la playlist original en memoria si fuera estática
                 List<Track> copy = new ArrayList<>(tracks);
                 Collections.shuffle(copy);
                 result.add(copy);
@@ -181,9 +173,33 @@ public class PlaylistSetUtils {
         return result;
     }
 
-    private void queueTracksAsync(CommandContext ctx, List<Track> tracks) {
+    private Map<String, Set<String>> buildCreditsMap(List<Playlist> playlists) {
+        Map<String, Set<String>> map = new HashMap<>();
+
+        for (Playlist p : playlists) {
+            String ownerName = p.getOwnerName();
+
+            if (ownerName == null || ownerName.isEmpty()) {
+                if (p.getName().startsWith("Música de ")) {
+                    ownerName = p.getName().substring("Música de ".length());
+                } else {
+                    ownerName = "Usuario";
+                }
+            }
+
+            List<Track> tracks = bot.getPlaylistManager().getTracksFromPlaylist(p);
+            if (tracks != null) {
+                for (Track t : tracks) {
+                    map.computeIfAbsent(t.getUuid(), k -> new LinkedHashSet<>()).add(ownerName);
+                }
+            }
+        }
+        return map;
+    }
+
+    private void queueTracksAsync(List<Track> tracks, Map<String, Set<String>> creditsMap) {
         if (tracks.isEmpty()) {
-            bot.reply("[color=red]La operación resultó en una lista vacía.[/color]");
+            bot.replyError("La operación resultó en una lista vacía.");
             return;
         }
 
@@ -196,17 +212,22 @@ public class PlaylistSetUtils {
             try {
                 Track trackToQueue = t;
 
-                // Verificación de archivo físico
                 File file = (t.getPath() != null) ? new File(t.getPath()) : null;
                 if (file == null || !file.exists()) {
                     System.out.println("[Auto-Fix] Re-descargando: " + t.getTitle());
                     trackToQueue = bot.getMusicManager().resolve(t.getUuid());
                 }
 
-                bot.getPlayer().queue(new QueuedTrack(trackToQueue, null, null));
-                successCount++;
+                String semanticName = null;
 
-                Thread.sleep(50); // Throttle
+                if (creditsMap != null && creditsMap.containsKey(t.getUuid())) {
+                    Set<String> owners = creditsMap.get(t.getUuid());
+                    String joinedNames = String.join(" & ", owners);
+                    semanticName = "[i][color=#777777]courtesy of[/color] " + joinedNames + "[/i]";
+                }
+
+                bot.getPlayer().queue(new QueuedTrack(trackToQueue, null, semanticName));
+                successCount++;
 
             } catch (Exception e) {
                 failCount++;
@@ -217,7 +238,7 @@ public class PlaylistSetUtils {
         if (failCount > 0) {
             bot.reply("[color=lime]Carga finalizada.[/color] [color=orange](✅ " + successCount + " | ❌ " + failCount + ")[/color]");
         } else {
-            bot.reply("[color=lime]¡Carga completada exitosamente! (" + successCount + " canciones)[/color]");
+            bot.replySuccess("¡Carga completada exitosamente! (" + successCount + " canciones)");
         }
     }
 }

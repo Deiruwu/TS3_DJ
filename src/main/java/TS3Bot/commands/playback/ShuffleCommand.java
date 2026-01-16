@@ -47,6 +47,6 @@ public class ShuffleCommand extends Command {
     @Override
     public void execute(CommandContext ctx) {
         bot.getPlayer().shuffle();
-        replyImportant("La cola de reproducción ha sido mezclada por " + ctx.getUserName());
+        replyAction("La cola de reproducción ha sido mezclada por: ", ctx.getUserName());
     }
 }

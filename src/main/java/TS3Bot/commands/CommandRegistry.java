@@ -26,8 +26,7 @@ public class CommandRegistry {
 
         final String C_HEADER = "#FF8C00";     // Tu Naranja (Dark Orange)
         final String C_CMD    = "#BD93F9";    // // Púrpura suave para los comandos
-        final String C_ARGS   = "#0066cc";    // Azul oscuro profesional para argumentos
-        final String C_TEXT   = "#333333";    // Gris muy oscuro (casi negro) para el resto
+
 
         // Header más limpio, sin cajas pesadas
         messages.add("[b][color=" + C_CMD + "]=== LISTA DE COMANDOS ===[/color][/b]");
@@ -39,37 +38,21 @@ public class CommandRegistry {
 
         for (Map.Entry<String, List<Command>> entry : categorized.entrySet()) {
             // Título de categoría limpio
-            // Separador más ligero usando color gris
             messages.add("[color=#999999]───────────────────────────────────────────────[/color]");
             messages.add("[b][color=" + C_HEADER + "]● " + entry.getKey().toUpperCase() + "[/color][/b]");
 
             for (Command cmd : entry.getValue()) {
-                String rawUsage = cmd.getUsage(); // Ej: "!play (!p) <url>"
-
-                String[] parts = rawUsage.split(" ", 2);
-                String commandName = parts[0]; // "!play"
-                String argsAndAliases = (parts.length > 1) ? parts[1] : ""; // "(!p) <url>"
-
                 // Reconstruimos el string con seguridad
                 StringBuilder sb = new StringBuilder();
 
                 // 1. Bullet point gris
                 sb.append("[color=#999999]»[/color] ");
 
-                // 2. Comando en Naranja y Negrita (Tu branding)
-                sb.append("[b][color=" + C_CMD + "]").append(commandName).append("[/color][/b] ");
+                // 2. Resolvemos el formato del comando con su metodo interno
+                sb.append(cmd.formatUsage());
 
-                // 3. El resto del texto procesado suavemente
-                if (!argsAndAliases.isEmpty()) {
-                    // Coloreamos sutilmente los argumentos <...>
-                    String styledArgs = argsAndAliases
-                            .replaceAll("<(.*?)>", "[color=" + C_ARGS + "]<$1>[/color]")
-                            .replaceAll("\\[(.*?)\\]", "[color=#777777][$1][/color]"); // Opcionales en gris
-
-                    sb.append("[color=" + C_TEXT + "]").append(styledArgs).append("[/color]");
-                }
-
-                messages.add(sb.toString());
+                // 3. Agregamos el String Builder a la lista
+                messages.add(String.valueOf(sb));
             }
         }
 

@@ -73,6 +73,7 @@ public class CreatePlaylistCommand extends Command {
         int id = bot.getPlaylistManager().createPlaylist(
                 name,
                 ctx.getUserUid(),
+                ctx.getUserName(),
                 PlaylistType.USER
         );
 
@@ -80,7 +81,7 @@ public class CreatePlaylistCommand extends Command {
             bot.refreshPlaylists();
             reply("[color=lime]Playlist creada:[/color] [b]" + name + "[/b]");
         } else {
-            reply("[color=red]Error al crear la playlist. Intenta de nuevo.[/color]");
+            replyError("Error al crear la playlist");
         }
     }
 }

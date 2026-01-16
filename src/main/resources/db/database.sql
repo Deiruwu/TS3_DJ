@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS playlists (
                                          id INTEGER PRIMARY KEY AUTOINCREMENT,
                                          name TEXT NOT NULL,
                                          owner_uid TEXT NOT NULL,
+                                         owner_name TEXT NOT NULL,
                                          type TEXT NOT NULL DEFAULT 'USER' CHECK( type IN ('USER', 'SYSTEM', 'FAVORITES') ),
     UNIQUE(name, owner_uid)
     );

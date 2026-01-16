@@ -46,7 +46,7 @@ public class SkipToCommand extends Command {
     @Override
     public void execute(CommandContext ctx) {
         if (!ctx.hasArgs()) {
-            reply("[color=orange]Uso correcto: " + getUsage() + "[/color]");
+            replyUsage();
             return;
         }
 
@@ -60,10 +60,8 @@ public class SkipToCommand extends Command {
             }
 
             // Usamos el metodo replyImportant si lo implementaste, o un reply normal
-            reply("[color=orange]Saltando hasta la canción #" + (targetIndex + 1) + "...[/color]");
+            replyAction("Saltando hasta la canción #" + (targetIndex + 1) + "...");
 
-            // Asume que tu Player tiene un metodo skipTo.
-            // Si no, sería un bucle de removes o similar.
             bot.getPlayer().skipTo(targetIndex);
             bot.refreshPlaylists();
 
