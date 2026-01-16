@@ -245,6 +245,12 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
     // ========================================
 
     private void ensureUserPersonalPlaylist(String userUid, String userName, String songUuid) {
+        // reemplaza "request by" en el username por "".
+        if (userName.contains("request by")) {
+            userName = userName.replace("request by", "");
+        }
+        userName = userName.trim();
+
         String playlistName = "Música de " + userName;
 
         Playlist userPlaylist = null;
