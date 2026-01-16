@@ -99,6 +99,7 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
         commandRegistry.register(new VolumeCommand(this));
         commandRegistry.register(new ClearCommand(this));
         commandRegistry.register(new DeleteCommand(this));
+        commandRegistry.register(new CancelCommand(this));
 
         // Playlist commands
         commandRegistry.register(new CreatePlaylistCommand(this));
