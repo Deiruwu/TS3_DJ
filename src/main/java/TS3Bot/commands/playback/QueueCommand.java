@@ -13,7 +13,13 @@ import java.util.List;
  * de canciones que están en espera para ser reproducidas.
  * También incluye quien pidió la canción o de qué playlist proviene.
  *
- * @version 1.1
+ * Uso:
+ *   !queue              -> Muestra las primeras 15 canciones
+ *   !queue 20           -> Muestra las primeras 20 canciones
+ *   !queue --latest     -> Muestra las últimas 15 canciones
+ *   !queue 30 --latest  -> Muestra las últimas 30 canciones
+ *
+ * @version 2.0
  */
 public class QueueCommand extends Command {
 
@@ -33,7 +39,7 @@ public class QueueCommand extends Command {
 
     @Override
     public String getUsage() {
-        return getName().concat(getStrAliases());
+        return getName() + getStrAliases() + " [cantidad] [--latest]";
     }
 
     @Override
@@ -43,7 +49,8 @@ public class QueueCommand extends Command {
 
     @Override
     public String getDescription() {
-        return "Muestra la canción actualmente en reproducción y todas las canciones en espera en la cola";
+        return "Muestra la canción actualmente en reproducción y todas las canciones en espera en la cola.\n" +
+                "Usa --latest para ver las últimas canciones de la cola.";
     }
 
     @Override
@@ -51,7 +58,20 @@ public class QueueCommand extends Command {
         String actual = bot.getPlayer().getCurrentTrack().toString();
         List<String> canciones = bot.getPlayer().getQueueList();
 
+        // Mostrar canción actual
         reply("[b][color=blue]Estás escuchando: [/color][/b]" + actual);
-        replyList(canciones);
+
+        boolean showLatest = ctx.hasAnyFlag("latest", "last");
+
+        if (ctx.hasArgs()) {
+            try {
+                int limit = Integer.parseInt(ctx.getArgsArray()[0]);
+                replyList(canciones, limit, showLatest);
+            } catch (NumberFormatException e) {
+                replyList(canciones, showLatest);
+            }
+        } else {
+            replyList(canciones, showLatest);
+        }
     }
 }

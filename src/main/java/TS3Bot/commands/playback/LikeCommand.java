@@ -43,7 +43,7 @@ public class LikeCommand extends AsyncCommand {
 
     @Override
     public String getUsage() {
-        return getName().concat(getStrAliases()).concat(" <índice> | <desde> <hasta>");
+        return getName().concat(getStrAliases()).concat(" <Vacío (Para la actual)> | <índice> | <desde> <hasta>");
     }
 
     @Override

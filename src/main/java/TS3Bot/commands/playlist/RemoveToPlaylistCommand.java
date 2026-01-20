@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
  * Está pensando para eliminar canciones de una playlist personalizada creada por el usuario.
  * Verificar qué la playlist qué desees modificar haya sido creada por el usuario. Realiza una validación
  *
- * @version 1.0
+ * @version 1.1
  */
 public class RemoveToPlaylistCommand extends AsyncCommand {
     private final PlaylistUtils playlistUtils;

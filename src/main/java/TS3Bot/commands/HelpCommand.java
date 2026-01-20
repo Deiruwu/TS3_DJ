@@ -43,7 +43,7 @@ public class HelpCommand extends Command{
 
 
         for (String cmd : comandos) {
-            reply(cmd + "\n");
+            reply(cmd);
         }
     }
 }

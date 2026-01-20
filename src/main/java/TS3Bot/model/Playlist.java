@@ -32,6 +32,6 @@ public class Playlist {
 
     @Override
     public String toString() {
-        return String.format("[%s] %s (%s)", type, name, ownerUid);
+        return String.format("%s ([color=purple]%d[/color] canciones)", name, tracks.size());
     }
 }

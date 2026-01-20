@@ -175,14 +175,8 @@ public class TrackScheduler implements Microphone {
             if (songQueue.isEmpty()) {
                 return lines;
             }
-            int i = 1;
             for(QueuedTrack qt : songQueue) {
-                String line = qt.getTrack() + qt.getRequestedByName();
-                lines.add(line);
-                if(i > 10) {
-                    lines.add("... y " + (songQueue.size() - 10) + " más.");
-                    break;
-                }
+                lines.add(qt.toString());
             }
             return lines;
         }

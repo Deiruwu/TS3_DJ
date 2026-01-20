@@ -137,9 +137,9 @@ public class PlayPlaylistCommand extends AsyncCommand {
      */
     private QueuedTrack createQueuedTrack(Track track, boolean isMine, String userUid, String userName) {
         if (isMine) {
-            return new QueuedTrack(track, userUid, userName);
+            return new QueuedTrack(track, userUid, userName, true);
         } else {
-            return new QueuedTrack(track, null, null);
+            return new QueuedTrack(track, null, null, true);
         }
     }
 }

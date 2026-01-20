@@ -57,7 +57,7 @@ public class PlayCommand extends AsyncCommand {
 
         try {
             Track track = bot.getMusicManager().resolve(ctx.getArgs());
-            QueuedTrack queuedTrack = new QueuedTrack(track, ctx.getUserUid(), "request by "+ ctx.getUserName());
+            QueuedTrack queuedTrack = new QueuedTrack(track, ctx.getUserUid(), ctx.getUserName(), true);
 
             bot.getPlayer().queue(queuedTrack);
             reply("[color=blue]Añadido:[/color] [i]" + track + "[/i]");

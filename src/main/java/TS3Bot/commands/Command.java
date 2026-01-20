@@ -54,18 +54,38 @@ public abstract class Command implements Replyable {
 
         StringBuilder sb = new StringBuilder();
 
+        // Nombre del comando
         sb.append("[b][color=").append(C_CMD).append("]")
                 .append(commandName)
                 .append("[/color][/b]");
 
         if (!rest.isEmpty()) {
-            String styled = rest
-                    .replaceAll("<(.*?)>", "[color=" + C_ARGS + "]<$1>[/color]")
-                    .replaceAll("\\((.*?)\\)", "($1)");
 
-            sb.append(" [color=").append(C_TEXT).append("]")
-                    .append(styled)
-                    .append("[/color]");
+            String aliases = "";
+            String after = rest;
+
+            if (rest.startsWith("(")) {
+                int end = rest.indexOf(")");
+                if (end != -1) {
+                    aliases = rest.substring(0, end + 1);
+                    after = rest.substring(end + 1).trim();
+                }
+            }
+
+            if (!aliases.isEmpty()) {
+                sb.append(" ").append(aliases);
+            }
+
+            if (!after.isEmpty()) {
+                String styled = after.replaceAll(
+                        "<(.*?)>",
+                        "[color=" + C_ARGS + "]<$1>[/color]"
+                );
+
+                sb.append(" [color=").append(C_TEXT).append("]")
+                        .append(styled)
+                        .append("[/color]");
+            }
         }
 
         return sb.toString();

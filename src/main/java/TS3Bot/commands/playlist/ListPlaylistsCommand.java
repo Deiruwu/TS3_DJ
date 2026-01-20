@@ -7,6 +7,7 @@ import TS3Bot.commands.utils.PlaylistUtils;
 import TS3Bot.model.Playlist;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Lista todas las playlists disponibles.
@@ -61,9 +62,9 @@ public class ListPlaylistsCommand extends Command {
         reply("[color=blue][b]Playlists Disponibles:[/b][/color]");
 
         for (int i = 0; i < allPlaylists.size(); i++) {
-            String formatted = playlistUtils.formatPlaylistInfo(allPlaylists.get(i), i + 1);
-            reply("  " + formatted);
+            replyList(allPlaylists.stream()
+                    .map(Playlist::toString)
+                    .collect(Collectors.toList()));
         }
-
     }
 }

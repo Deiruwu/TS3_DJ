@@ -15,8 +15,9 @@ import TS3Bot.db.TrackDAO;
 import TS3Bot.db.StatsDAO;
 import TS3Bot.interfaces.Replyable;
 import TS3Bot.model.*;
-import com.github.manevolent.ts3j.event.TS3Listener;
-import com.github.manevolent.ts3j.event.TextMessageEvent;
+import TS3Bot.services.DiscordService;
+import TS3Bot.services.UserStateManager;
+import com.github.manevolent.ts3j.event.*;
 import com.github.manevolent.ts3j.identity.LocalIdentity;
 import com.github.manevolent.ts3j.protocol.client.ClientConnectionState;
 import com.github.manevolent.ts3j.protocol.socket.client.LocalTeamspeakClientSocket;
@@ -40,6 +41,9 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
     private final PlaylistDAO playlistDao;
     private final StatsDAO statsDao;
 
+    private final UserStateManager userManager;
+    private final DiscordService discordService;
+
     private final JsonObject rootConfig;
     private final JsonObject defaultConfig;
     private final JsonObject serverConfig;
@@ -47,6 +51,7 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
 
     private final CommandRegistry commandRegistry;
     private boolean running = false;
+    private String botNickname;
 
     public List<Playlist> allPlaylists;
 
@@ -67,8 +72,13 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
         this.statsDao = new StatsDAO();
         this.musicManager = new MusicManager();
 
+        this.userManager = new UserStateManager();
+        this.discordService = new DiscordService();
+
         this.allPlaylists = playlistDao.getAllPlaylists();
         this.commandRegistry = new CommandRegistry();
+
+        setupBotConfiguration();
 
         setupTrackListener();
         registerCommands();
@@ -76,6 +86,25 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
         YouTubeHelper.setDownloadListener(track -> {
             replyAction("Track fuera de la base de datos. Descargando: " + track + "...");
         });
+    }
+    private void setupBotConfiguration() {
+        // 1. Obtener Nickname (Prioridad: Server > Default)
+        this.botNickname = "TS3Bot";
+        if (serverConfig.has("bot") && serverConfig.getAsJsonObject("bot").has("nickname")) {
+            this.botNickname = serverConfig.getAsJsonObject("bot").get("nickname").getAsString();
+        } else if (defaultConfig.has("bot") && defaultConfig.getAsJsonObject("bot").has("nickname")) {
+            this.botNickname = defaultConfig.getAsJsonObject("bot").get("nickname").getAsString();
+        }
+
+        String webhookUrl = null;
+        if (serverConfig.has("discord_webhook")) {
+            webhookUrl = serverConfig.get("discord_webhook").getAsString();
+        }
+
+        if (webhookUrl != null) {
+            discordService.setConfig(webhookUrl, this.botNickname);
+            System.out.println("Discord Service: ON (User: " + this.botNickname + ")");
+        }
     }
 
     @Override
@@ -140,17 +169,64 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
 
         String[] parts = raw.split("\\s+", 2);
         String label = parts[0].toLowerCase();
-        String args = parts.length > 1 ? parts[1] : "";
+        String argsRaw = parts.length > 1 ? parts[1] : "";
+
+        // Parsear flags y limpiar args
+        Map<String, String> flags = new HashMap<>();
+        StringBuilder cleanArgs = new StringBuilder();
+
+        if (!argsRaw.isEmpty()) {
+            String[] argParts = argsRaw.split("\\s+");
+            for (String part : argParts) {
+                if (part.startsWith("--")) {
+                    String flag = part.substring(2).toLowerCase();
+                    flags.put(flag, "true");
+                } else {
+                    if (cleanArgs.length() > 0) cleanArgs.append(" ");
+                    cleanArgs.append(part);
+                }
+            }
+        }
 
         CommandContext ctx = new CommandContext(
-                args,
+                cleanArgs.toString(),
                 e.getInvokerUniqueId(),
                 e.getInvokerName(),
-                raw
+                raw,
+                flags
         );
 
         System.out.println(e.getInvokerName() + " executed: " + raw);
         commandRegistry.executeCommand(label, ctx);
+    }
+
+    @Override
+    public void onClientJoin(ClientJoinEvent e) {
+        if (e.getClientType() != 0) return;
+
+        if (e.getClientId() == client.getClientId()) return;
+
+        System.out.println("Nuevo usuario: " + e.getClientNickname());
+
+        userManager.addUser(e);
+        discordService.onUserJoin(e.getClientId(), e.getClientNickname());
+    }
+
+    @Override
+    public void onClientLeave(ClientLeaveEvent e) {
+
+        System.out.println("El usuario " + e.getInvokerName() + " ha abandonado el servidor.");
+
+        userManager.removeUser(e);
+        discordService.onUserLeave(e.getClientId());
+    }
+
+    @Override
+    public void onClientChanged(ClientUpdatedEvent e) {
+        if (userManager.updateUser(e)) {
+            String myUid = client.getIdentity().getUid().toBase64();
+            discordService.fetchInitialList(this.client, myUid);
+        }
     }
 
     // ========================================
@@ -162,14 +238,18 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
             Track trackActual = trackDao.getTrack(trackUuid);
 
             String baseNick = "[" + JsonHelper.getString(defaultConfig, serverConfig, "bot.nickname") + "] - " + trackActual.getTitle();
-            String request = (userName == null) ? "" : " request by " + userName;
             String newNick = baseNick;
             if (baseNick.length() > 27){
                 newNick = baseNick.substring(0, 27).concat("...");
             }
 
+            // Crear QueuedTrack temporal para obtener el request info
+            boolean isUserRequest = (userName != null && userUid != null);
+            QueuedTrack tempQueuedTrack = new QueuedTrack(trackActual, userUid, userName, isUserRequest);
+            String requestInfo = tempQueuedTrack.getRequestInfo();
+
             try {
-                client.setDescription(trackActual.toStringNotFormmat() + " [" + trackActual.getFormattedDuration() + "]" + request);
+                client.setDescription(trackActual.toStringNotFormmat() + " [" + trackActual.getFormattedDuration() + "]" + requestInfo);
                 client.setNickname(newNick);
             } catch (Exception e) {
                 System.err.println("Error cambiando nick: " + e.getMessage());
@@ -245,32 +325,15 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
     // ========================================
 
     private void ensureUserPersonalPlaylist(String userUid, String userName, String songUuid) {
-        // reemplaza "request by" en el username por "".
-        if (userName.contains("request by")) {
-            userName = userName.replace("request by", "");
-        }
-        userName = userName.trim();
-
-        String playlistName = "Música de " + userName;
-
-        Playlist userPlaylist = null;
-        for (Playlist p : allPlaylists) {
-            if (p.getName().equals(playlistName) && p.getOwnerUid().equals(userUid)) {
-                userPlaylist = p;
-                break;
-            }
-        }
+        Playlist userPlaylist = playlistDao.getFavoritesPlaylistByUser(userUid);
 
         if (userPlaylist == null) {
-            int newId = playlistDao.createPlaylist(playlistName, userUid, userName ,PlaylistType.FAVORITES);
+            String playlistName = "Música de " + userName;
+            int newId = playlistDao.createPlaylist(playlistName, userUid, userName, PlaylistType.FAVORITES);
+
             if (newId != -1) {
                 refreshPlaylists();
-                for (Playlist p : allPlaylists) {
-                    if (p.getId() == newId) {
-                        userPlaylist = p;
-                        break;
-                    }
-                }
+                userPlaylist = playlistDao.getPlaylistById(newId);
             }
         }
 
@@ -293,6 +356,13 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
             player.setVolume(vol);
 
             connect();
+
+            userManager.setBotClientId(client.getClientId());
+
+            String myUid = client.getIdentity().getUid().toBase64();
+
+            discordService.fetchInitialList(this.client, myUid);
+
             this.running = true;
             runConsoleLoop();
         } catch (Exception e) {

@@ -173,4 +173,28 @@ public class PlaylistDAO {
         }
         return playlists;
     }
+
+    public Playlist getFavoritesPlaylistByUser(String ownerUid) {
+        String sql = "SELECT * FROM playlists WHERE owner_uid = ? AND type = 'FAVORITES' LIMIT 1";
+
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, ownerUid);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                return new Playlist(
+                        rs.getInt("id"),
+                        rs.getString("name"),
+                        rs.getString("owner_uid"),
+                        rs.getString("owner_name"),
+                        PlaylistType.valueOf(rs.getString("type"))
+                );
+            }
+        } catch (SQLException e) {
+            System.err.println("Error buscando playlist de favoritos: " + e.getMessage());
+        }
+        return null;
+    }
 }

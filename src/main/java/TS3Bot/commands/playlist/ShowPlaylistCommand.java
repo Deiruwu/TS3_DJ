@@ -8,14 +8,21 @@ import TS3Bot.model.Playlist;
 import TS3Bot.model.Track;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
- * Muestra el conido de una playlist
+ * Muestra el contenido de una playlist
  *
  * Comando para mostrar el contenido detallado de una playlist específica.
  * Lista todas las canciones almacenadas en la playlist seleccionada por ID.
  *
- * @version 1.0
+ * Uso:
+ *   !showp 10              -> Muestra las primeras 15 canciones de la playlist 10
+ *   !showp 10 20           -> Muestra las primeras 20 canciones de la playlist 10
+ *   !showp 10 --latest     -> Muestra las últimas 15 canciones de la playlist 10
+ *   !showp 10 30 --latest  -> Muestra las últimas 30 canciones de la playlist 10
+ *
+ * @version 2.0
  */
 public class ShowPlaylistCommand extends Command {
     private final PlaylistUtils playlistUtils;
@@ -37,7 +44,7 @@ public class ShowPlaylistCommand extends Command {
 
     @Override
     public String getUsage() {
-        return getName().concat(getStrAliases()).concat(" <id_playlist>");
+        return getName() + getStrAliases() + " <id_playlist> [cantidad] [--latest]";
     }
 
     @Override
@@ -47,7 +54,8 @@ public class ShowPlaylistCommand extends Command {
 
     @Override
     public String getDescription() {
-        return "Muestra la lista de canciones contenidas en una playlist específica";
+        return "Muestra la lista de canciones contenidas en una playlist específica.\n" +
+                "Usa --latest para ver las últimas canciones añadidas.";
     }
 
     @Override
@@ -57,7 +65,10 @@ public class ShowPlaylistCommand extends Command {
             return;
         }
 
-        Playlist playlist = playlistUtils.resolvePlaylist(ctx.getArgs());
+        String[] args = ctx.getArgsArray();
+
+        // Primer argumento es el ID/nombre de la playlist
+        Playlist playlist = playlistUtils.resolvePlaylist(args[0]);
         if (playlist == null) {
             reply("[color=red]Playlist no encontrada.[/color]");
             return;
@@ -65,9 +76,29 @@ public class ShowPlaylistCommand extends Command {
 
         List<Track> tracks = playlistUtils.getTracksFromPlaylist(playlist);
 
-        reply(playlistUtils.formatPlaylistHeader(playlist));
-        for (int i = 0; i < tracks.size(); i++) {
-            reply(playlistUtils.formatTrackEntry(i, tracks.get(i)));
+        if (tracks.isEmpty()) {
+            reply("[color=gray]La playlist '[/color][b]" + playlist.getName() + "[/b][color=gray]' está vacía.[/color]");
+            return;
+        }
+
+        // Convertir tracks a String usando toString()
+        List<String> formattedTracks = tracks.stream()
+                .map(Track::toString)
+                .collect(Collectors.toList());
+
+        // Verificar si tiene flag --latest
+        boolean showLatest = ctx.hasAnyFlag("latest", "last");
+
+        // Usar polimorfía según los argumentos
+        if (args.length > 1) {
+            try {
+                int limit = Integer.parseInt(args[1]);
+                replyList(formattedTracks, limit, showLatest);
+            } catch (NumberFormatException e) {
+                replyList(formattedTracks, showLatest);
+            }
+        } else {
+            replyList(formattedTracks, showLatest);
         }
     }
 }

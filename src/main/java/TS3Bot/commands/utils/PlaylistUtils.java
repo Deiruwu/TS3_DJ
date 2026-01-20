@@ -232,22 +232,4 @@ public class PlaylistUtils {
                 playlist.getName(),
                 trackCount);
     }
-
-    /**
-     * Genera el encabezado para mostrar el contenido de una playlist.
-     */
-    public String formatPlaylistHeader(Playlist playlist) {
-        return "[color=blue][b]" + playlist.getName() + ":[/b][/color]";
-    }
-
-    /**
-     * Formatea una entrada de track en una lista numerada.
-     * Ejemplo: "  #1. Canción by Artista"
-     */
-    public String formatTrackEntry(int index, Track track) {
-        return String.format("  [color=purple]#%d.[/color] %s [color=purple]by[/color] %s",
-                index + 1,
-                track.getTitle(),
-                track.getArtist());
-    }
 }

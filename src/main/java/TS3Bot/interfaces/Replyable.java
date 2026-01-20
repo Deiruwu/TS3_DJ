@@ -45,10 +45,50 @@ public interface Replyable {
         reply("[color=" + C_INFO + "]" + message + "[/color]");
     }
 
+    // 1. (Por defecto: primeros 15)
     default void replyList(List<String> list) {
+        replyList(list, 15, false);
+    }
+
+    // 2. (Por defecto: primeros 15 y "Mostrar Recientes")
+    default void replyList(List<String> list, boolean showLatest) {
+        replyList(list, 15, showLatest);
+    }
+
+    // 3. manual (Por defecto: desde el principio)
+    default void replyList(List<String> list, int limit) {
+        replyList(list, limit, false);
+    }
+
+    // 4. (Con opción de "Mostrar Recientes")
+    default void replyList(List<String> list, int limit, boolean showLatest) {
         if (list == null || list.isEmpty()) return;
-        for (int i = 0; i < list.size(); i++) {
-            reply("[b][color=" + C_ACCENT + "]\t#" + (i + 1) + ".  [/color][/b]" + list.get(i));
+
+        int size = list.size();
+        int printCount = Math.min(size, limit);
+
+        if (showLatest) {
+            int start = size - printCount;
+
+            if (start > 0) {
+                reply("[i][color=gray]... ocultando los primeros " + start + " elementos.[/color][/i]");
+            }
+
+            for (int i = start; i < size; i++) {
+                reply("[b][color=" + C_ACCENT + "]\t#" + (i + 1) + ".  [/color][/b]" + list.get(i));
+            }
+
+        } else {
+
+            for (int i = 0; i < printCount; i++) {
+                reply("[b][color=" + C_ACCENT + "]\t#" + (i + 1) + ".  [/color][/b]" + list.get(i));
+            }
+
+            // Avisamos si faltan
+            int remaining = size - printCount;
+            if (remaining > 0) {
+                reply("[i][color=gray]... y " + remaining + " elementos más.[/color][/i]");
+            }
         }
     }
 

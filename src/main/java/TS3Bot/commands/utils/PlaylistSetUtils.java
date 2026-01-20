@@ -218,15 +218,14 @@ public class PlaylistSetUtils {
                     trackToQueue = bot.getMusicManager().resolve(t.getUuid());
                 }
 
-                String semanticName = null;
+                String joinedNames = "";
 
                 if (creditsMap != null && creditsMap.containsKey(t.getUuid())) {
                     Set<String> owners = creditsMap.get(t.getUuid());
-                    String joinedNames = String.join(" & ", owners);
-                    semanticName = "[i][color=#777777]courtesy of[/color] " + joinedNames + "[/i]";
+                    joinedNames = String.join(" & ", owners);
                 }
 
-                bot.getPlayer().queue(new QueuedTrack(trackToQueue, null, semanticName));
+                bot.getPlayer().queue(new QueuedTrack(trackToQueue, null, joinedNames, false));
                 successCount++;
 
             } catch (Exception e) {

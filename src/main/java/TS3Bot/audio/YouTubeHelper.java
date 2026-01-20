@@ -1,6 +1,7 @@
 package TS3Bot.audio;
 
 import TS3Bot.model.Track;
+import TS3Bot.services.DiscordService;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.io.*;
@@ -38,7 +39,6 @@ public class YouTubeHelper {
             if (jsonResponse == null) throw new Exception("El servicio Python no respondió.");
 
             JsonObject json = JsonParser.parseString(jsonResponse).getAsJsonObject();
-            // System.out.println(json.toString()); // Debug opcional
 
             if (!json.has("status") || !json.get("status").getAsString().equals("ok")) {
                 throw new Exception("No encontrado en YT/Spotify.");
@@ -48,6 +48,10 @@ public class YouTubeHelper {
             if (json.has("duration")) {
                 try { duration = json.get("duration").getAsLong(); } catch (Exception e) {}
             }
+
+            DiscordService discordService = new DiscordService();
+
+            discordService.setAvatarUrl(json.get("thumbnail").getAsString());
 
             return new Track(
                     json.get("id").getAsString(),

@@ -55,7 +55,7 @@ public class PlayNextCommand extends AsyncCommand {
 
         try {
             Track track = bot.getMusicManager().resolve(ctx.getArgs());
-            QueuedTrack queuedTrack = new QueuedTrack(track, ctx.getUserUid(), "request by " + ctx.getUserName());
+            QueuedTrack queuedTrack = new QueuedTrack(track, ctx.getUserUid(), ctx.getUserName(), true);
 
             bot.getPlayer().queueNext(queuedTrack);
             reply("[color=lime]Siguiente:[/color] [i]" + track + "[/i]");
