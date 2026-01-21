@@ -61,10 +61,8 @@ public class ListPlaylistsCommand extends Command {
 
         reply("[color=blue][b]Playlists Disponibles:[/b][/color]");
 
-        for (int i = 0; i < allPlaylists.size(); i++) {
             replyList(allPlaylists.stream()
                     .map(Playlist::toString)
                     .collect(Collectors.toList()));
-        }
     }
 }
