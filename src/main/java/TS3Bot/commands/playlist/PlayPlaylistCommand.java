@@ -65,21 +65,18 @@ public class PlayPlaylistCommand extends AsyncCommand {
             Playlist playlist = playlistUtils.getPlaylistByUserIndex(playlistIndex);
 
             if (playlist == null) {
-                reply("[color=red]Playlist no encontrada. Verifica el ID con !playlists.[/color]");
+                replyError("Playlist #" + playlistIndex + " no encontrada.");
                 return;
             }
 
-            // Obtener tracks usando utils
             List<Track> tracks = playlistUtils.getTracksFromPlaylist(playlist);
 
             if (tracks.isEmpty()) {
-                reply("[color=red]La playlist [b]" + playlist.getName() + "[/b] está vacía.[/color]");
+                replyWarning("La playlist [b]" + playlist.getName() + "[/b] está vacía.");
                 return;
             }
 
-            reply("[color=blue]Cargando " + tracks.size() + " canciones de [b]" + playlist.getName() + "[/b]...[/color]");
 
-            // Determinar si es del usuario (para attribution)
             boolean isMine = playlistUtils.isOwner(playlist, ctx.getUserUid());
             int loaded = 0;
 
@@ -103,10 +100,10 @@ public class PlayPlaylistCommand extends AsyncCommand {
                 }
             }
 
-            reply("[color=lime]Playlist cargada exitosamente (" + loaded + " canciones).[/color]");
+            replySuccess(loaded + " canciones cargando de [b]" + playlist.getName() + "[/b]...");
 
         } catch (NumberFormatException e) {
-            reply("[color=red]El ID de la playlist debe ser numérico.[/color]");
+            replyError("El ID de la playlist debe ser numérico.");
         }
     }
 

@@ -44,7 +44,7 @@ public class ShowPlaylistCommand extends Command {
 
     @Override
     public String getUsage() {
-        return getName() + getStrAliases() + " <id_playlist> [cantidad] [--latest]";
+        return getName() + getStrAliases() + " <id_playlist> <cantidad> <--latest>";
     }
 
     @Override
@@ -67,29 +67,27 @@ public class ShowPlaylistCommand extends Command {
 
         String[] args = ctx.getArgsArray();
 
-        // Primer argumento es el ID/nombre de la playlist
         Playlist playlist = playlistUtils.resolvePlaylist(args[0]);
         if (playlist == null) {
-            reply("[color=red]Playlist no encontrada.[/color]");
+            replyError("Playlist no encontrada.");
             return;
         }
 
         List<Track> tracks = playlistUtils.getTracksFromPlaylist(playlist);
 
         if (tracks.isEmpty()) {
-            reply("[color=gray]La playlist '[/color][b]" + playlist.getName() + "[/b][color=gray]' está vacía.[/color]");
+            replyError("La playlist " + playlist.getName() + " está vacía.");
             return;
         }
 
-        // Convertir tracks a String usando toString()
         List<String> formattedTracks = tracks.stream()
                 .map(Track::toString)
                 .collect(Collectors.toList());
 
-        // Verificar si tiene flag --latest
         boolean showLatest = ctx.hasAnyFlag("latest", "last");
 
-        // Usar polimorfía según los argumentos
+        replyListHeader(playlist.getName());
+
         if (args.length > 1) {
             try {
                 int limit = Integer.parseInt(args[1]);

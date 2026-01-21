@@ -55,11 +55,11 @@ public class ListPlaylistsCommand extends Command {
         List<Playlist> allPlaylists = bot.getAllPlaylists();
 
         if (allPlaylists.isEmpty()) {
-            reply("[color=gray]No hay playlists. Usa !createp <nombre> para comenzar.[/color]");
+            replyWarning("No hay playlists. Usa !createp <nombre> para comenzar.");
             return;
         }
 
-        reply("[color=blue][b]Playlists Disponibles:[/b][/color]");
+        replyListHeader("Playlists disponibles");
 
             replyList(allPlaylists.stream()
                     .map(Playlist::toString)

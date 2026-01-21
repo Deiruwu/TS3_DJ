@@ -24,8 +24,8 @@ public class CommandRegistry {
     public List<String> generateHelp() {
         List<String> messages = new ArrayList<>();
 
-        final String C_HEADER = "#FF8C00";     // Tu Naranja (Dark Orange)
-        final String C_CMD    = "#BD93F9";    // // Púrpura suave para los comandos
+        final String C_HEADER = "#FF8C00";
+        final String C_CMD    = "#BD93F9";    // Púrpura suave para los comandos
 
 
         // Header más limpio, sin cajas pesadas

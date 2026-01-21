@@ -57,7 +57,7 @@ public class Track {
     }
 
     @Override
-    public String toString() { return title + " [color=purple]by[/color] " + artist; }
+    public String toString() { return title + " [color=#BD93F9]by[/color] " + artist; }
 
     public String toStringNotFormmat() { return title + " by " + artist; }
 

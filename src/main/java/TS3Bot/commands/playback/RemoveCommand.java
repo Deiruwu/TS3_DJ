@@ -67,7 +67,7 @@ public class RemoveCommand extends Command {
                 String message = idx.length == 1
                         ? "Canción #" + (idx[0] + 1) + " eliminada de la cola."
                         : "Canciones #" + (idx[0] + 1) + " a #" + (idx[1] + 1) + " eliminadas de la cola.";
-                replyAction(message);
+                replySuccess(message);
             }
 
         } catch (NumberFormatException e) {

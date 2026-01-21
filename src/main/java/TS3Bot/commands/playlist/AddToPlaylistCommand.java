@@ -5,6 +5,7 @@ import TS3Bot.commands.AsyncCommand;
 import TS3Bot.commands.CommandContext;
 import TS3Bot.commands.utils.PlaylistUtils;
 import TS3Bot.model.Playlist;
+import TS3Bot.model.QueuedTrack;
 import TS3Bot.model.Track;
 
 /**
@@ -12,8 +13,10 @@ import TS3Bot.model.Track;
  *
  * Comando para agregar una canción a una playlist existente.
  * Busca y resuelve una canción para guardarla directamente en la base de datos.
+ * Se añadió la funcionalidad de escribir solamente el id de la playlist para añadir la canción actual
+ * Además, se añade a tus favoritos para tener seguimiento
  *
- * @version 1.0
+ * @version 1.1
  */
 public class AddToPlaylistCommand extends AsyncCommand {
     private final PlaylistUtils playlistUtils;
@@ -51,25 +54,57 @@ public class AddToPlaylistCommand extends AsyncCommand {
 
     @Override
     public void executeAsync(CommandContext ctx) {
+        if (!ctx.hasArgs()) {
+            replyUsage();
+            return;
+        }
+
         String[] parts = ctx.getSplitArgs(2);
-        if (parts.length < 2) {
+
+        if (parts.length < 1) {
             replyUsage();
             return;
         }
 
         try {
-            Playlist playlist = playlistUtils.getPlaylistByUserIndex(Integer.parseInt(parts[0]));
-            if (playlist == null) {
-                reply("[color=red]Playlist no encontrada.[/color]");
+            Playlist targetPlaylist = playlistUtils.getPlaylistByUserIndex(Integer.parseInt(parts[0]));
+
+            if (targetPlaylist == null) {
+                replyError("Playlist #" + parts[0] + " no encontrada.");
                 return;
             }
 
-            Track track = bot.getMusicManager().resolve(parts[1]);
-            playlistUtils.addTrackToPlaylist(playlist, track);
+            QueuedTrack current = bot.getPlayer().getCurrentTrack();
+            Track trackToAdd;
 
-            reply("[color=lime]Añadido a[/color] [b]" + playlist.getName() + "[/b]");
+            if (parts.length == 2) {
+                trackToAdd = bot.getMusicManager().resolve(parts[1]);
+            } else {
+                if (current == null) {
+                    replyWarning("No hay nada sonando ahora mismo.");
+                    return;
+                }
+                trackToAdd = current.getTrack();
+            }
+
+            playlistUtils.addTrackToPlaylist(targetPlaylist, trackToAdd);
+
+            StringBuilder msg = new StringBuilder();
+            msg.append(targetPlaylist.getName());
+
+            Playlist personalPlaylist = playlistUtils.ensureUserFavoritesPlaylist(ctx.getUserUid(), ctx.getUserName());
+
+            if (personalPlaylist != null && personalPlaylist.getId() != targetPlaylist.getId()) {
+                playlistUtils.addTrackToPlaylist(personalPlaylist, trackToAdd);
+                msg.append(" y a [i]tus favoritos[/i]");
+            }
+
+            replyPlaylistAction(trackToAdd + " añadida a ",msg.toString());
+
+        } catch (NumberFormatException e) {
+            replyError("El ID de la playlist debe ser un número.");
         } catch (Exception e) {
-            reply("[color=red]Error: " + e.getMessage() + "[/color]");
+            e.printStackTrace();
         }
     }
 }

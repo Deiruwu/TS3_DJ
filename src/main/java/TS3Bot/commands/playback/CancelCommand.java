@@ -49,7 +49,7 @@ public class CancelCommand extends Command {
         boolean killed = YouTubeHelper.cancelCurrentDownload();
 
         if (killed) {
-            reply("[b]Descarga abortada.[/b] El proceso ha sido eliminado.");
+            replySuccess("[b]Descarga abortada.[/b] El proceso ha sido eliminado.");
         } else {
             replyError("No hay ninguna descarga activa en este momento.");
         }

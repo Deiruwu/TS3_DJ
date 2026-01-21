@@ -62,7 +62,7 @@ public class DislikeCommand extends AsyncCommand {
         );
 
         if (favoritesPlaylist == null) {
-            reply("[color=red]Error al acceder a tu playlist de favoritos.[/color]");
+            replyError("No se pudo acceder a tu playlist de favoritos.");
             return;
         }
 
@@ -70,29 +70,25 @@ public class DislikeCommand extends AsyncCommand {
 
         try {
             if (!ctx.hasArgs()) {
-                // Sin argumentos: remover la canción que está sonando
                 QueuedTrack current = bot.getPlayer().getCurrentTrack();
                 if (current == null) {
-                    reply("[color=gray]Nada sonando. Uso: " + getUsage() + "[/color]");
+                    replyWarning("No hay nada sonando ahora mismo.");
                     return;
                 }
                 trackToRemove = current.getTrack();
             } else {
-                // Con argumentos: buscar la canción especificada
                 trackToRemove = bot.getMusicManager().resolve(ctx.getArgs());
             }
 
-            // Remover usando utils
             boolean success = playlistUtils.removeTrackFromPlaylist(favoritesPlaylist, trackToRemove);
 
             if (success) {
-                reply("[color=green]Eliminada de favoritos:[/color] " + trackToRemove.getTitle());
+                replyPlaylistAction("Eliminada de favoritos: ", trackToRemove.getTitle());
             } else {
-                reply("[color=orange]Esa canción no estaba en tus favoritos.[/color]");
+                replyWarning("La canción no estaba en tus favoritos.");
             }
 
         } catch (Exception e) {
-            reply("[color=red]Error: " + e.getMessage() + "[/color]");
         }
     }
 }

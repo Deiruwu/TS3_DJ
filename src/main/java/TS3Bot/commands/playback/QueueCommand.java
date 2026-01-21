@@ -58,8 +58,7 @@ public class QueueCommand extends Command {
         String actual = bot.getPlayer().getCurrentTrack().toString();
         List<String> canciones = bot.getPlayer().getQueueList();
 
-        // Mostrar canción actual
-        reply("[b][color=blue]Estás escuchando: [/color][/b]" + actual);
+        replyNowPlaying(actual);
 
         boolean showLatest = ctx.hasAnyFlag("latest", "last");
 

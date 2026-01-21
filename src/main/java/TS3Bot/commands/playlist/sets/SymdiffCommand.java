@@ -51,7 +51,7 @@ public class SymdiffCommand extends Command {
     @Override
     public void execute(CommandContext ctx) {
         if (!ctx.hasArgs()) {
-            reply("[color=orange]Uso: " + getUsage() + "[/color]");
+            replyUsage();
             return;
         }
         setUtils.handleSymDiff(ctx);

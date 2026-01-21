@@ -54,4 +54,12 @@ public class UserStateManager {
                 .map(ConnectedUser::getNickname)
                 .collect(Collectors.toList());
     }
+
+    public int getClientIdByUid(String targetUid) {
+        return users.values().stream()
+                .filter(u -> u.getUniqueId().equals(targetUid))
+                .mapToInt(ConnectedUser::getClientId)
+                .findFirst()
+                .orElse(-1);
+    }
 }

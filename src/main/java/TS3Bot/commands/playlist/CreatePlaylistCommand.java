@@ -50,26 +50,23 @@ public class CreatePlaylistCommand extends Command {
     @Override
     public void execute(CommandContext ctx) {
         if (!ctx.hasArgs()) {
-            reply("[color=gray]Uso: " + getUsage() + "[/color]");
+            replyUsage();
             return;
         }
 
         String name = ctx.getArgs().trim();
 
-        // Validar nombre usando utils
         String validationError = playlistUtils.validatePlaylistName(name);
         if (validationError != null) {
-            reply("[color=red]" + validationError + ".[/color]");
+            replyError(validationError);
             return;
         }
 
-        // Verificar duplicados
         if (playlistUtils.playlistNameExists(name, ctx.getUserUid())) {
-            reply("[color=red]Ya tienes una playlist llamada [b]" + name + "[/b].[/color]");
+            replyWarning("Ya existe una playlist con ese nombre.");
             return;
         }
 
-        // Crear playlist
         int id = bot.getPlaylistManager().createPlaylist(
                 name,
                 ctx.getUserUid(),
@@ -79,7 +76,7 @@ public class CreatePlaylistCommand extends Command {
 
         if (id != -1) {
             bot.refreshPlaylists();
-            reply("[color=lime]Playlist creada:[/color] [b]" + name + "[/b]");
+            replyPlaylistAction("Playlist creada: ", name);
         } else {
             replyError("Error al crear la playlist");
         }

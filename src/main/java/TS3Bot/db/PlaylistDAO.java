@@ -73,13 +73,11 @@ public class PlaylistDAO {
 
         if (playlist.getType() == PlaylistType.SYSTEM)
             sql = "SELECT * FROM songs ORDER BY added_at DESC";
-
         else
             sql = "SELECT s.* FROM songs s " +
                     "JOIN playlist_songs ps ON s.uuid = ps.song_uuid " +
                     "WHERE ps.playlist_id = ? " +
                     "ORDER BY ps.added_at ASC";
-
 
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -127,7 +125,12 @@ public class PlaylistDAO {
     }
 
     public Playlist getPlaylistById(int playlistId) {
-        String sql = "SELECT * FROM playlists WHERE id = ?";
+        // Hacemos LEFT JOIN para contar canciones sin perder la playlist si está vacía
+        String sql = "SELECT p.*, COUNT(ps.song_uuid) as song_count " +
+                "FROM playlists p " +
+                "LEFT JOIN playlist_songs ps ON p.id = ps.playlist_id " +
+                "WHERE p.id = ? " +
+                "GROUP BY p.id";
 
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -141,7 +144,8 @@ public class PlaylistDAO {
                         rs.getString("name"),
                         rs.getString("owner_uid"),
                         rs.getString("owner_name"),
-                        PlaylistType.valueOf(rs.getString("type"))
+                        PlaylistType.valueOf(rs.getString("type")),
+                        rs.getInt("song_count")
                 );
             }
         } catch (SQLException e) {
@@ -153,7 +157,11 @@ public class PlaylistDAO {
     public List<Playlist> getAllPlaylists() {
         List<Playlist> playlists = new ArrayList<>();
 
-        String sql = "SELECT * FROM playlists ORDER BY id ASC";
+        String sql = "SELECT p.*, COUNT(ps.song_uuid) as song_count " +
+                "FROM playlists p " +
+                "LEFT JOIN playlist_songs ps ON p.id = ps.playlist_id " +
+                "GROUP BY p.id " +
+                "ORDER BY p.id ASC";
 
         try (Connection conn = DatabaseManager.getConnection();
              Statement stmt = conn.createStatement();
@@ -165,7 +173,8 @@ public class PlaylistDAO {
                         rs.getString("name"),
                         rs.getString("owner_uid"),
                         rs.getString("owner_name"),
-                        PlaylistType.valueOf(rs.getString("type"))
+                        PlaylistType.valueOf(rs.getString("type")),
+                        rs.getInt("song_count")
                 ));
             }
         } catch (SQLException e) {
@@ -175,7 +184,12 @@ public class PlaylistDAO {
     }
 
     public Playlist getFavoritesPlaylistByUser(String ownerUid) {
-        String sql = "SELECT * FROM playlists WHERE owner_uid = ? AND type = 'FAVORITES' LIMIT 1";
+        String sql = "SELECT p.*, COUNT(ps.song_uuid) as song_count " +
+                "FROM playlists p " +
+                "LEFT JOIN playlist_songs ps ON p.id = ps.playlist_id " +
+                "WHERE p.owner_uid = ? AND p.type = 'FAVORITES' " +
+                "GROUP BY p.id " +
+                "LIMIT 1";
 
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -189,12 +203,46 @@ public class PlaylistDAO {
                         rs.getString("name"),
                         rs.getString("owner_uid"),
                         rs.getString("owner_name"),
-                        PlaylistType.valueOf(rs.getString("type"))
+                        PlaylistType.valueOf(rs.getString("type")),
+                        rs.getInt("song_count")
                 );
             }
         } catch (SQLException e) {
             System.err.println("Error buscando playlist de favoritos: " + e.getMessage());
         }
         return null;
+    }
+
+    public boolean updatePlaylistName(int playlistId, String newName) {
+        String sql = "UPDATE playlists SET name = ? WHERE id = ?";
+
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, newName);
+            pstmt.setInt(2, playlistId);
+            int rows = pstmt.executeUpdate();
+            return rows > 0;
+
+        } catch (SQLException e) {
+            System.err.println("Error actualizando nombre de playlist: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean deletePlaylist(int playlistId) {
+        String sql = "DELETE FROM playlists WHERE id = ?";
+
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, playlistId);
+            int rows = pstmt.executeUpdate();
+            return rows > 0;
+
+        } catch (SQLException e) {
+            System.err.println("Error eliminando playlist: " + e.getMessage());
+            return false;
+        }
     }
 }

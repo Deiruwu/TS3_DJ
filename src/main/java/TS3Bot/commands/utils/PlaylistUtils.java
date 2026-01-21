@@ -160,7 +160,7 @@ public class PlaylistUtils {
             return "El nombre contiene caracteres no permitidos";
         }
 
-        return null; // Válido
+        return null;
     }
 
     /**

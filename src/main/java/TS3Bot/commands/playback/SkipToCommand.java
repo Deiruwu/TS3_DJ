@@ -51,24 +51,21 @@ public class SkipToCommand extends Command {
         }
 
         try {
-            // El usuario ve la lista comenzando en 1, pero internamente es 0
             int targetIndex = Integer.parseInt(ctx.getArgsArray()[0]) - 1;
 
             if (targetIndex < 0 || targetIndex >= bot.getPlayer().getQueueList().size()) {
-                reply("[color=red]El índice está fuera de rango. Verifica la cola con !queue.[/color]");
+                replyError("El índice está fuera de rango. Verifica la cola con !queue.");
                 return;
             }
 
-            // Usamos el metodo replyImportant si lo implementaste, o un reply normal
-            replyAction("Saltando hasta la canción #" + (targetIndex + 1) + "...");
+            replySuccess("Saltando hasta la canción #" + (targetIndex + 1) + "...");
 
             bot.getPlayer().skipTo(targetIndex);
             bot.refreshPlaylists();
 
         } catch (NumberFormatException e) {
-            reply("[color=red]El índice debe ser un número entero válido.[/color]");
+            replyError("El índice debe ser un número entero válido.");
         } catch (Exception e) {
-            reply("[color=red]Ocurrió un error al intentar saltar: " + e.getMessage() + "[/color]");
         }
     }
 }

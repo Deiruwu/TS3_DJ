@@ -54,7 +54,7 @@ public class VolumeCommand extends Command {
     @Override
     public void execute(CommandContext ctx) {
         if (!ctx.hasArgs()) {
-            reply("[color=orange]Uso correcto: " + getUsage() + "[/color]");
+            replyUsage();
             return;
         }
 
@@ -69,12 +69,12 @@ public class VolumeCommand extends Command {
 
             bot.saveVolumeConfig(vol);
 
-            replyImportant("Volumen ajustado al " + vol + "% por " + ctx.getUserName());
+            replyAction("Volumen ajustado al " + vol + "% por " + ctx.getUserName());
 
         } catch (NumberFormatException e) {
-            reply("[color=red]El volumen debe ser un número entero.[/color]");
+            replyError("El volumen debe ser un número entero.");
         } catch (Exception e) {
-            reply("[color=red]Error al ajustar volumen: " + e.getMessage() + "[/color]");
+            replyError("Error al ajustar volumen.");
         }
     }
 }

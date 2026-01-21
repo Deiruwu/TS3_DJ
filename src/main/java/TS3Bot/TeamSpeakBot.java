@@ -4,7 +4,6 @@ import TS3Bot.audio.MusicManager;
 import TS3Bot.audio.TrackScheduler;
 import TS3Bot.audio.YouTubeHelper;
 import TS3Bot.commands.*;
-import TS3Bot.commands.maintenance.DeleteCommand;
 import TS3Bot.commands.playback.*;
 import TS3Bot.commands.playlist.*;
 import TS3Bot.commands.playlist.sets.*;
@@ -14,6 +13,7 @@ import TS3Bot.db.PlaylistDAO;
 import TS3Bot.db.TrackDAO;
 import TS3Bot.db.StatsDAO;
 import TS3Bot.interfaces.Replyable;
+import TS3Bot.managers.ConfirmationManager;
 import TS3Bot.model.*;
 import TS3Bot.services.DiscordService;
 import TS3Bot.services.UserStateManager;
@@ -52,6 +52,7 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
     private final CommandRegistry commandRegistry;
     private boolean running = false;
     private String botNickname;
+    private ConfirmationManager confirmationManager;
 
     public List<Playlist> allPlaylists;
 
@@ -78,13 +79,15 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
         this.allPlaylists = playlistDao.getAllPlaylists();
         this.commandRegistry = new CommandRegistry();
 
+        this.confirmationManager = new ConfirmationManager();
+
         setupBotConfiguration();
 
         setupTrackListener();
         registerCommands();
 
         YouTubeHelper.setDownloadListener(track -> {
-            replyAction("Track fuera de la base de datos. Descargando: " + track + "...");
+            reply("Track fuera de la base de datos. Descargando: " + track + "...");
         });
     }
     private void setupBotConfiguration() {
@@ -139,6 +142,8 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
         commandRegistry.register(new RemoveToPlaylistCommand(this));
         commandRegistry.register(new DislikeCommand(this));
         commandRegistry.register(new LikeCommand(this));
+        commandRegistry.register(new RenamePlaylistCommand(this));
+        commandRegistry.register(new DeletePlaylistCommand(this));
 
         // Set operations
         commandRegistry.register(new IntersectCommand(this));
@@ -165,13 +170,20 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
         if (e.getInvokerId() == client.getClientId()) return;
 
         String raw = e.getMessage().trim().replaceAll("\\[/?(?i)URL\\]", "");
+
+        // Manejar confirmaciones pendientes
+        if (confirmationManager.hasPending(e.getInvokerUniqueId())) {
+            confirmationManager.handleResponse(e.getInvokerUniqueId(), raw);
+            return;
+        }
+
         if (!raw.startsWith("!")) return;
 
         String[] parts = raw.split("\\s+", 2);
         String label = parts[0].toLowerCase();
         String argsRaw = parts.length > 1 ? parts[1] : "";
 
-        // Parsear flags y limpiar args
+        // Parsear flags
         Map<String, String> flags = new HashMap<>();
         StringBuilder cleanArgs = new StringBuilder();
 
@@ -199,7 +211,6 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
         System.out.println(e.getInvokerName() + " executed: " + raw);
         commandRegistry.executeCommand(label, ctx);
     }
-
     @Override
     public void onClientJoin(ClientJoinEvent e) {
         if (e.getClientType() != 0) return;
@@ -235,7 +246,8 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
 
     private void setupTrackListener() {
         player.setTrackStartListener((userUid, userName, trackUuid) -> {
-            Track trackActual = trackDao.getTrack(trackUuid);
+            QueuedTrack queuedTrack = player.getCurrentTrack();
+            Track trackActual = queuedTrack.getTrack();
 
             String baseNick = "[" + JsonHelper.getString(defaultConfig, serverConfig, "bot.nickname") + "] - " + trackActual.getTitle();
             String newNick = baseNick;
@@ -255,7 +267,7 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
                 System.err.println("Error cambiando nick: " + e.getMessage());
             }
 
-            reply("Reproduciendo: " + trackActual);
+            replyPlayingListener(trackActual + queuedTrack.getRequestInfo());
 
             if (userUid == null) return;
             if (trackUuid == null) return;
@@ -297,6 +309,15 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
         return commandRegistry;
     }
 
+
+    public ConfirmationManager getConfirmationManager() {
+        return confirmationManager;
+    }
+
+    public int getClientIdByUid(String uid) {
+        return userManager.getClientIdByUid(uid);
+    }
+
     public void refreshPlaylists() {
         this.allPlaylists = playlistDao.getAllPlaylists();
     }
@@ -304,6 +325,13 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
     public void reply(String msg) {
         try {
             client.sendServerMessage(msg);
+        } catch (Exception ignored) {
+        }
+    }
+
+    public void replyPoke(int idUser,String msg){
+        try {
+            client.clientPoke(idUser, msg);
         } catch (Exception ignored) {
         }
     }

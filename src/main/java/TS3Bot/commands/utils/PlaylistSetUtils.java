@@ -50,7 +50,7 @@ public class PlaylistSetUtils {
             }
 
             if (finalQueue.isEmpty()) {
-                bot.replyAction("No hay canciones en común (Intersección vacía).");
+                bot.replyWarning("No hay canciones en común (Intersección vacía).");
             } else {
                 queueTracksAsync(finalQueue, creditsMap);
             }
@@ -141,7 +141,7 @@ public class PlaylistSetUtils {
             }
 
             if (finalQueue.isEmpty()) {
-                bot.replyAction("No hay canciones únicas. Todas se repiten en otras playlists.");
+                bot.replyWarning("No hay canciones únicas. Todas se repiten en otras playlists.");
             } else {
                 queueTracksAsync(finalQueue, creditsMap);
             }
@@ -199,11 +199,9 @@ public class PlaylistSetUtils {
 
     private void queueTracksAsync(List<Track> tracks, Map<String, Set<String>> creditsMap) {
         if (tracks.isEmpty()) {
-            bot.replyError("La operación resultó en una lista vacía.");
+            bot.replyWarning("La operación resultó en una lista vacía.");
             return;
         }
-
-        bot.reply("[color=blue]Procesando y cargando " + tracks.size() + " canciones...[/color]");
 
         int successCount = 0;
         int failCount = 0;
@@ -235,9 +233,9 @@ public class PlaylistSetUtils {
         }
 
         if (failCount > 0) {
-            bot.reply("[color=lime]Carga finalizada.[/color] [color=orange](✅ " + successCount + " | ❌ " + failCount + ")[/color]");
+            bot.replyWarning("Carga finalizada. (" + successCount + " | " + failCount + ")");
         } else {
-            bot.replySuccess("¡Carga completada exitosamente! (" + successCount + " canciones)");
+            bot.replySuccess(successCount + " canciones cargadas a la cola");
         }
     }
 }

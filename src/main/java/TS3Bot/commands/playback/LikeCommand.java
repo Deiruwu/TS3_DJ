@@ -120,11 +120,11 @@ public class LikeCommand extends AsyncCommand {
         if (addedCount > 0) bot.refreshPlaylists();
 
         if (addedCount == 0) {
-            replyAction("Las canciones seleccionadas ya estaban en tus favoritos.");
+            replyWarning("Las canciones seleccionadas ya estaban en tus favoritos.");
         } else if (addedCount == 1) {
-            reply("Añadida a favoritos: [b]" + lastAdded + "[/b]");
+            replySuccess("Añadida a favoritos: [b]" + lastAdded + "[/b]");
         } else {
-            reply("Añadidas [b]" + addedCount + "[/b] canciones a tus favoritos.");
+            replySuccess("Añadidas [b]" + addedCount + "[/b] canciones a tus favoritos.");
         }
     }
 }

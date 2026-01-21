@@ -64,12 +64,12 @@ public class RemoveToPlaylistCommand extends AsyncCommand {
 
             Playlist playlist = playlistUtils.getPlaylistByUserIndex(playlistIndex);
             if (playlist == null) {
-                reply("[color=red]Playlist no encontrada. Verifica el ID con !playlists.[/color]");
+                replyError("Playlist #" + playlistIndex + " no encontrada.");
                 return;
             }
 
             if (!playlistUtils.isOwner(playlist, ctx.getUserUid())) {
-                reply("[color=red]No tienes permiso para modificar [b]" + playlist.getName() + "[/b].[/color]");
+                replyError("Solo puedes eliminar tus propias playlists.");
                 return;
             }
 
@@ -77,7 +77,7 @@ public class RemoveToPlaylistCommand extends AsyncCommand {
             Track track = bot.getMusicManager().resolve(query);
 
             if (track == null) {
-                reply("[color=red]No se encontró la canción.[/color]");
+                replyError("No se pudo encontrar la canción.");
                 return;
             }
 
@@ -85,16 +85,14 @@ public class RemoveToPlaylistCommand extends AsyncCommand {
             boolean success = playlistUtils.removeTrackFromPlaylist(playlist, track);
 
             if (success) {
-                reply("[color=green]Eliminada:[/color] [b]" + track.getTitle() +
-                        "[/b] de [b]" + playlist.getName() + "[/b].");
+                replyPlaylistAction(track.getTitle() + " eliminada de ", playlist.getName());
             } else {
-                reply("[color=orange]Esa canción no estaba en [b]" + playlist.getName() + "[/b].[/color]");
+                replyError("La canción no estaba en " + playlist.getName());
             }
 
         } catch (NumberFormatException e) {
-            reply("[color=red]El ID debe ser numérico.[/color]");
+            replyError("El ID debe ser numérico.");
         } catch (Exception e) {
-            reply("[color=red]Error: " + e.getMessage() + "[/color]");
         }
     }
 }

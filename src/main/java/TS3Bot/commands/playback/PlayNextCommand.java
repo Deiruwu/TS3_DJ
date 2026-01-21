@@ -58,11 +58,11 @@ public class PlayNextCommand extends AsyncCommand {
             QueuedTrack queuedTrack = new QueuedTrack(track, ctx.getUserUid(), ctx.getUserName(), true);
 
             bot.getPlayer().queueNext(queuedTrack);
-            reply("[color=lime]Siguiente:[/color] [i]" + track + "[/i]");
+            replyMusicNext(track.toString());
 
         } catch (Exception e) {
             System.out.println("Error al resolver track: " + e.getMessage());
-            reply("[color=red]No se pudo encontrar o cargar la canción. Verifica el enlace o intenta con otros términos de búsqueda.[/color]");
+            replyError("No se pudo encontrar o cargar la canción");
         }
     }
 }

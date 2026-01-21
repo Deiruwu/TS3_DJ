@@ -1,4 +1,4 @@
-package TS3Bot.commands.maintenance;
+package TS3Bot.commands.playback;
 
 import TS3Bot.TeamSpeakBot;
 import TS3Bot.commands.Command;

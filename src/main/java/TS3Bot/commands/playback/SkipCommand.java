@@ -46,7 +46,7 @@ public class SkipCommand extends Command {
 
     @Override
     public void execute(CommandContext ctx) {
-        replyAction("Saltando canción...");
+        replySuccess("Saltando canción...");
         bot.getPlayer().next();
         bot.refreshPlaylists();
     }
