@@ -49,16 +49,13 @@ public class YouTubeHelper {
                 try { duration = json.get("duration").getAsLong(); } catch (Exception e) {}
             }
 
-            DiscordService discordService = new DiscordService();
-
-            discordService.setAvatarUrl(json.get("thumbnail").getAsString());
-
             return new Track(
                     json.get("id").getAsString(),
                     json.get("title").getAsString(),
                     json.get("artist").getAsString(),
                     json.get("album").getAsString(),
                     null,
+                    json.get("thumbnail").getAsString(),
                     duration
             );
         }

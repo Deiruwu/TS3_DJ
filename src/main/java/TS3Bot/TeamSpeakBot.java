@@ -74,7 +74,7 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
         this.musicManager = new MusicManager();
 
         this.userManager = new UserStateManager();
-        this.discordService = new DiscordService();
+        this.discordService = DiscordService.getInstance();
 
         this.allPlaylists = playlistDao.getAllPlaylists();
         this.commandRegistry = new CommandRegistry();
@@ -87,7 +87,7 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
         registerCommands();
 
         YouTubeHelper.setDownloadListener(track -> {
-            reply("Track fuera de la base de datos. Descargando: " + track + "...");
+            replyDowload(track.toString());
         });
     }
     private void setupBotConfiguration() {
@@ -249,13 +249,23 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
             QueuedTrack queuedTrack = player.getCurrentTrack();
             Track trackActual = queuedTrack.getTrack();
 
+            if (trackActual.getAlbum() == null || trackActual.getAlbum().isEmpty()) {
+                try {
+                    Track fullMetadata = YouTubeHelper.getMetadataViaSocket(trackActual.getUuid());
+                    trackActual.setAlbumUrl(fullMetadata.getAlbum());
+                } catch (Exception e) {
+                    System.err.println("[TrackListener] No se pudo obtener metadata: " + e.getMessage());
+                }
+            }
+
+            discordService.setAvatarUrl( trackActual.getAlbumUrl());
+
             String baseNick = "[" + JsonHelper.getString(defaultConfig, serverConfig, "bot.nickname") + "] - " + trackActual.getTitle();
             String newNick = baseNick;
             if (baseNick.length() > 27){
                 newNick = baseNick.substring(0, 27).concat("...");
             }
 
-            // Crear QueuedTrack temporal para obtener el request info
             boolean isUserRequest = (userName != null && userUid != null);
             QueuedTrack tempQueuedTrack = new QueuedTrack(trackActual, userUid, userName, isUserRequest);
             String requestInfo = tempQueuedTrack.getRequestInfo();

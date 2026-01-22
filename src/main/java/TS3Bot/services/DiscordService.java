@@ -17,18 +17,26 @@ import java.util.Map;
 import java.util.concurrent.*;
 
 public class DiscordService {
+    private static DiscordService instance;
+
+    private DiscordService() {
+    }
+
+    public static DiscordService getInstance() {
+        if (instance == null) {
+            instance = new DiscordService();
+        }
+        return instance;
+    }
 
     private String webhookUrl;
     private String botUsername = "TS3 Bot";
     private final Map<Integer, String> connectedUsers = new ConcurrentHashMap<>();
-    private String AVATAR_URL = "https://i.imgur.com/A6j82jD.png";
+    private String AVATAR_URL = "https://imgur.com/a/WwaNHU4.png";
 
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private ScheduledFuture<?> pendingTask;
     private static final int DELAY_SECONDS = 90;
-
-    public DiscordService() {
-    }
 
     public void setConfig(String webhookUrl, String botUsername) {
         this.webhookUrl = webhookUrl;
@@ -86,10 +94,12 @@ public class DiscordService {
     }
 
     // Renombrado a sendUpdateNow para diferenciarlo
+// ... dentro de DiscordService.java ...
+
     private void sendUpdateNow() {
         if (this.webhookUrl == null || this.webhookUrl.isEmpty()) return;
 
-        System.out.println("[DiscordService] Tiempo de espera terminado. Enviando notificación...");
+        System.out.println("[DiscordService] Tiempo de espera terminado. Preparando notificación...");
 
         try {
             List<String> userList = new ArrayList<>(this.connectedUsers.values());
@@ -114,10 +124,15 @@ public class DiscordService {
             JsonObject root = new JsonObject();
             root.addProperty("content", "-# Actividad en Teamspeak");
             root.addProperty("username", this.botUsername);
-            root.addProperty("avatar_url", AVATAR_URL);
+            root.addProperty("avatar_url", this.AVATAR_URL); // Asegúrate de usar this.AVATAR_URL
             root.add("embeds", embeds);
 
-            byte[] payload = root.toString().getBytes(StandardCharsets.UTF_8);
+            // --- DEBUG: IMPRIMIR JSON ANTES DE ENVIAR ---
+            String jsonString = root.toString();
+            System.out.println("[DiscordService] Enviando JSON: " + jsonString);
+            // --------------------------------------------
+
+            byte[] payload = jsonString.getBytes(StandardCharsets.UTF_8);
 
             URL url = new URL(this.webhookUrl);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -128,7 +143,10 @@ public class DiscordService {
             try (OutputStream os = conn.getOutputStream()) {
                 os.write(payload);
             }
-            conn.getResponseCode();
+
+            // Verificamos la respuesta también por si Discord devuelve error (ej. 400 Bad Request)
+            int responseCode = conn.getResponseCode();
+            System.out.println("[DiscordService] Respuesta del servidor: " + responseCode);
 
         } catch (Exception e) {
             System.err.println("[DiscordService] Error envio: " + e.getMessage());

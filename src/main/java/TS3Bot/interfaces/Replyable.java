@@ -11,8 +11,8 @@ public interface Replyable {
     String C_PRIMARY   = "#BD93F9";  // Púrpura - Números (#1, #2), markers, inicios
     String C_HEADER    = "#FF8C00";  // Naranja - Títulos, encabezados, nombres de playlists
 
-    // === PALETA VIBRANTE (SIN VERDE) ===
-    String C_SUCCESS   = "#00D9FF";  // Cyan brillante - Éxitos
+    // === PALETA VIBRANTE ===
+    String C_SUCCESS   = "#00C896";  // Verde esmeralda vibrant - Éxitos
     String C_ERROR     = "#FF3B3B";  // Rojo vibrante - Errores
     String C_WARNING   = "#FFA500";  // Orange - Advertencias
     String C_MUTED     = "#7C7C7C";  // Gray medio - Textos secundarios
@@ -61,28 +61,32 @@ public interface Replyable {
         reply("[color=" + C_HEADER + "]" + pre + message + "[/color]");
     }
 
+    default void replyDowload(String track) {
+        reply("[color=" + C_HEADER + "][b]Track fuera de la base de datos.[/b] Descargando: [/color]" + track + "...");
+    }
+
     // === MENSAJES DE MÚSICA ===
 
     default void replyMusicAdded(String track) {
-        reply("[color=" + C_MUSIC + "]Añadido:[/color] [i]" + track + "[/i]");
+        reply("[color=" + C_MUSIC + "][b]Añadido:[/b][/color] [i]" + track + "[/i]");
     }
 
     default void replyMusicNext(String track) {
-        reply("[color=" + C_MUSIC + "]Siguiente:[/color] [i]" + track + "[/i]");
+        reply("[color=" + C_MUSIC + "][b]Siguiente:[/b][/color] [i]" + track + "[/i]");
     }
 
     default void replyNowPlaying(String track) {
-        reply("[color=" + C_MUSIC + "]Estás escuchando:[/color] [b]" + track + "[/b]");
+        reply("[color=" + C_MUSIC + "][b]Estás escuchando:[b/][/color] [i]" + track + "[/i]");
     }
 
     default void replyPlayingListener(String track) {
-        reply("[color=" + C_MUSIC + "]A continuación:[/color] [b]" + track + "[/b]");
+        reply("[color=" + C_MUSIC + "][b]A continuación:[/b][/color] [i]" + track + "[/i]");
     }
 
     // === MENSAJES DE PLAYLIST ===
 
     default void replyPlaylistAction(String action, String playlistName) {
-        reply("[color=" + C_PLAYLIST + "]" + action + " [/color][color=" + C_HEADER + "][b]" + playlistName + "[/b][/color]");
+        reply("[color=" + C_PLAYLIST + "][b]" + action + "[/b][/color] [color=" + C_HEADER + "][i]" + playlistName + "[/i][/color]");
     }
 
     // === CONFIRMACIONES ===
@@ -118,23 +122,23 @@ public interface Replyable {
         if (showLatest) {
             int start = size - printCount;
             if (start > 0) {
-                reply("[color=" + C_MUTED + "]··· " + start + " anteriores ocultos[/color]");
+                reply("\t[color=" + C_MUTED + "]··· " + start + " anteriores ocultos[/color]");
             }
             for (int i = start; i < size; i++) {
-                reply("[color=" + C_PRIMARY + "]#" + (i + 1) + "[/color] " + list.get(i));
+                reply("\t[color=" + C_PRIMARY + "][b]#" + (i + 1) + ".[/b][/color] " + list.get(i));
             }
         } else {
             for (int i = 0; i < printCount; i++) {
-                reply("[color=" + C_PRIMARY + "]#" + (i + 1) + "[/color] " + list.get(i));
+                reply("\t[color=" + C_PRIMARY + "][b]#" + (i + 1) + ".[/b][/color] " + list.get(i));
             }
             int remaining = size - printCount;
             if (remaining > 0) {
-                reply("[color=" + C_MUTED + "]··· " + remaining + " más[/color]");
+                reply("\t[color=" + C_MUTED + "]··· " + remaining + " más[/color]");
             }
         }
     }
 
     default void replyListHeader(String title) {
-        reply("[color=" + C_HEADER + "]═══ " + title + " ═══[/color]");
+        reply("[color=" + C_HEADER + "][b]═══ " + title + " ═══[/b][/color]");
     }
 }

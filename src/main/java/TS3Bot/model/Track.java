@@ -7,7 +7,8 @@ public class Track {
     private String title;
     private String artist;
     private String album;
-    private String path;      // Puede ser null al principio
+    private String path;
+    private String albumUrl;
     private long duration;
 
     public Track(String uuid, String title, String artist, String album, String path, long duration) {
@@ -27,6 +28,16 @@ public class Track {
         this.duration = duration;
     }
 
+    public Track(String uuid, String title, String artist, String album, String path, String albumUrl, long duration) {
+        this.uuid = uuid;
+        this.title = title;
+        this.artist = artist;
+        this.album = album;
+        this.path = path;
+        this.albumUrl = albumUrl;
+        this.duration = duration;
+    }
+
     public void setPath(String path) {
         this.path = path;
     }
@@ -36,7 +47,10 @@ public class Track {
     public String getArtist() { return artist; }
     public String getAlbum() { return album; }
     public String getPath() { return path; }
+    public String getAlbumUrl() { return albumUrl; }
     public long getDuration() { return duration; }
+
+    public void setAlbumUrl(String albumUrl) { this.albumUrl = albumUrl; }
 
     public String getFormattedDuration() {
         long totalSeconds = this.duration;
