@@ -252,13 +252,13 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
             if (trackActual.getAlbum() == null || trackActual.getAlbum().isEmpty()) {
                 try {
                     Track fullMetadata = YouTubeHelper.getMetadataViaSocket(trackActual.getUuid());
-                    trackActual.setAlbumUrl(fullMetadata.getAlbum());
+                    trackActual.setAlbumUrl(fullMetadata.getAlbumUrl());
                 } catch (Exception e) {
                     System.err.println("[TrackListener] No se pudo obtener metadata: " + e.getMessage());
                 }
             }
 
-            discordService.setAvatarUrl( trackActual.getAlbumUrl());
+            discordService.setAvatarUrl(trackActual.getAlbumUrl());
 
             String baseNick = "[" + JsonHelper.getString(defaultConfig, serverConfig, "bot.nickname") + "] - " + trackActual.getTitle();
             String newNick = baseNick;
@@ -277,7 +277,7 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
                 System.err.println("Error cambiando nick: " + e.getMessage());
             }
 
-            replyPlayingListener(trackActual + queuedTrack.getRequestInfo());
+            replyPlayingListener(trackActual + queuedTrack.toString());
 
             if (userUid == null) return;
             if (trackUuid == null) return;

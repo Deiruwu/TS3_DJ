@@ -29,7 +29,7 @@ public class QueuedTrack {
 
     public String getRequestStringFormatted() {
         if (isUserRequest && requestedByName != null) {
-            return " [color=gray]- request by[/color] " + requestedByName;
+            return " [color=gray]request by[/color] " + requestedByName;
         }
         return "";
     }
@@ -43,7 +43,7 @@ public class QueuedTrack {
 
     public String getCourtesyStringFormatted() {
         if (!isUserRequest && requestedByName != null) {
-            return " [color=gray]- courtesy of[/color] " + requestedByName;
+            return " [color=gray]courtesy of[/color] " + requestedByName;
         }
         return "";
     }

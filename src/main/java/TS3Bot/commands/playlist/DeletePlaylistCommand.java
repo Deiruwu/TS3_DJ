@@ -65,14 +65,13 @@ public class DeletePlaylistCommand extends Command {
         }
 
         int trackCount = playlistUtils.getTracksFromPlaylist(playlist).size();
-        String confirmMessage = String.format(
-                "¿Estás seguro de eliminar '[b]%s[/b]' (%d canciones)? Escribe [b]y[/b] para confirmar o cualquier otra cosa para cancelar. (Timeout: %ds)",
+
+        replyConfirmation(
+                "Eliminar",
                 playlist.getName(),
-                trackCount,
+                trackCount + " canciones",
                 CONFIRMATION_TIMEOUT
         );
-
-        replyConfirmation(confirmMessage);
 
         int clientId = bot.getClientIdByUid(ctx.getUserUid());
         if (clientId != -1) {
@@ -82,7 +81,6 @@ public class DeletePlaylistCommand extends Command {
         bot.getConfirmationManager().requestConfirmation(
                 ctx.getUserUid(),
                 clientId,
-                confirmMessage,
                 () -> performDeletion(playlist),
                 () -> reply("[color=gray]Eliminación cancelada.[/color]"),
                 CONFIRMATION_TIMEOUT

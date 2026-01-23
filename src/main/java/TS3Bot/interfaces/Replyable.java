@@ -76,7 +76,7 @@ public interface Replyable {
     }
 
     default void replyNowPlaying(String track) {
-        reply("[color=" + C_MUSIC + "][b]Estás escuchando:[b/][/color] [i]" + track + "[/i]");
+        reply("[color=" + C_MUSIC + "][b]Estás escuchando:[/b][/color] [i]" + track + "[/i]");
     }
 
     default void replyPlayingListener(String track) {
@@ -91,8 +91,24 @@ public interface Replyable {
 
     // === CONFIRMACIONES ===
 
-    default void replyConfirmation(String message) {
-        reply("[color=" + C_CONFIRM + "]" + message + "[/color]");
+    default void replyConfirmation(String action, String target, String extra, int timeout) {
+        String targetInfo = (extra != null && !extra.isEmpty()) ? target + " (" + extra + ")" : target;
+
+        // Formato limpio:
+        // Acción -> OrangeRed (Highlight)
+        // Objeto -> Negrita (Blanco/Default)
+        // 'y' y Tiempo -> Amber (Confirm)
+        String msg = String.format(
+                "¿Estás seguro de [color=%s][b]%s[/b][/color] [b]%s[/b]? Escribe [color=%s][b]y[/b][/color] para confirmar. (Timeout: [color=%s][b]%ds[/b][/color])",
+                C_HIGHLIGHT,           // Color Acción
+                action.toUpperCase(),  // Texto Acción
+                targetInfo,            // Texto Objeto
+                C_CONFIRM,             // Color 'y'
+                C_CONFIRM,             // Color Timeout
+                timeout                // Valor Timeout
+        );
+
+        reply(msg);
     }
 
     default void replyCancelled() {
@@ -122,18 +138,18 @@ public interface Replyable {
         if (showLatest) {
             int start = size - printCount;
             if (start > 0) {
-                reply("\t[color=" + C_MUTED + "]··· " + start + " anteriores ocultos[/color]");
+                reply("[color=" + C_MUTED + "]\t··· " + start + " anteriores ocultos[/color]");
             }
             for (int i = start; i < size; i++) {
-                reply("\t[color=" + C_PRIMARY + "][b]#" + (i + 1) + ".[/b][/color] " + list.get(i));
+                reply("[color=" + C_PRIMARY + "]\t[b]#" + (i + 1) + ".[/b][/color] " + list.get(i));
             }
         } else {
             for (int i = 0; i < printCount; i++) {
-                reply("\t[color=" + C_PRIMARY + "][b]#" + (i + 1) + ".[/b][/color] " + list.get(i));
+                reply("[color=" + C_PRIMARY + "]\t[b]#" + (i + 1) + ".[/b][/color] " + list.get(i));
             }
             int remaining = size - printCount;
             if (remaining > 0) {
-                reply("\t[color=" + C_MUTED + "]··· " + remaining + " más[/color]");
+                reply("[color=" + C_MUTED + "]\t··· " + remaining + " más[/color]");
             }
         }
     }

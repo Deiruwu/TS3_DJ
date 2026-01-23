@@ -89,7 +89,7 @@ public class PlayPlaylistCommand extends AsyncCommand {
                                 trackToQueue,
                                 isMine,
                                 ctx.getUserUid(),
-                                ctx.getUserName()
+                                (isMine) ? ctx.getUserName() : playlist.getOwnerName()
                         );
 
                         bot.getPlayer().queue(queuedTrack);
@@ -136,7 +136,7 @@ public class PlayPlaylistCommand extends AsyncCommand {
         if (isMine) {
             return new QueuedTrack(track, userUid, userName, true);
         } else {
-            return new QueuedTrack(track, null, null, true);
+            return new QueuedTrack(track, null, userName, true);
         }
     }
 }

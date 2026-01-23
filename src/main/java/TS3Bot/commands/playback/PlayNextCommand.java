@@ -57,8 +57,8 @@ public class PlayNextCommand extends AsyncCommand {
             Track track = bot.getMusicManager().resolve(ctx.getArgs());
             QueuedTrack queuedTrack = new QueuedTrack(track, ctx.getUserUid(), ctx.getUserName(), true);
 
-            bot.getPlayer().queueNext(queuedTrack);
-            replyMusicNext(track.toString());
+            boolean isPlayingNow = bot.getPlayer().queueNext(queuedTrack);
+            if (!isPlayingNow) replyMusicNext(track.toString());
 
         } catch (Exception e) {
             System.out.println("Error al resolver track: " + e.getMessage());

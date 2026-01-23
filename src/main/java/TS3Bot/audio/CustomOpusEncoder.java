@@ -15,7 +15,7 @@ public class CustomOpusEncoder {
         try {
             // 48000Hz, 2 Canales (Stereo)
             this.encoder = new OpusEncoder(48000, 2, OpusApplication.OPUS_APPLICATION_AUDIO);
-            this.encoder.setBitrate(112000); // 128kbps
+            this.encoder.setBitrate(96000); // 96kbps
             this.encoder.setSignalType(OpusSignal.OPUS_SIGNAL_MUSIC);
             this.encoder.setComplexity(5); // Balance entre calidad y CPU para la Pi
 

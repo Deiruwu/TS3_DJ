@@ -7,7 +7,7 @@ public class ConfirmationManager {
     private final Map<String, PendingConfirmation> pendingConfirmations = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
-    public void requestConfirmation(String userUid, int clientId, String message,
+    public void requestConfirmation(String userUid, int clientId,
                                     Runnable onConfirm, Runnable onCancel, int timeoutSeconds) {
 
         cancelPending(userUid);

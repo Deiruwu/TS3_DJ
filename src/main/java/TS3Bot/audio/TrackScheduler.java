@@ -45,21 +45,25 @@ public class TrackScheduler implements Microphone {
         this.trackStartListener = listener;
     }
 
-    public void queue(QueuedTrack queuedTrack) {
+    public boolean queue(QueuedTrack queuedTrack) {
         synchronized (songQueue) {
             songQueue.add(queuedTrack);
             if (currentTrack == null && !playing) {
                 next();
+                return true;
             }
+            return false;
         }
     }
 
-    public void queueNext(QueuedTrack queuedTrack) {
+    public boolean queueNext(QueuedTrack queuedTrack) {
         synchronized (songQueue) {
             songQueue.addFirst(queuedTrack);
             if (currentTrack == null && !playing) {
                 next();
+                return true;
             }
+            return false;
         }
     }
 

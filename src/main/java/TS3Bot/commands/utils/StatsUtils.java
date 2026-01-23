@@ -2,15 +2,12 @@ package TS3Bot.commands.utils;
 
 import TS3Bot.TeamSpeakBot;
 import TS3Bot.commands.CommandContext;
+import TS3Bot.interfaces.Replyable;
 import TS3Bot.model.PlayStats;
 
 import java.util.List;
 
-/**
- * Clase de utilidad para manejar la lógica de visualización de estadísticas.
- * Centraliza las consultas de Top/Least tanto globales como por usuario.
- */
-public class StatsUtils {
+public class StatsUtils implements Replyable {
 
     private final TeamSpeakBot bot;
 
@@ -18,58 +15,45 @@ public class StatsUtils {
         this.bot = bot;
     }
 
+    @Override
+    public TeamSpeakBot getBot() { return bot; }
+
     public void handleListSongsByUser(CommandContext ctx, boolean top) {
-        String arg = ctx.getArgs();
-        String userUid = ctx.getUserUid();
-        String userName = ctx.getUserName();
-
-        int limit;
-        try {
-            limit = arg.isEmpty() ? 5 : Integer.parseInt(arg.split("\\s+")[0]);
-            if (limit > 20) limit = 20;
-        } catch (NumberFormatException e) {
-            limit = 5;
-        }
-
-        String playOrder = top ? "más" : "menos";
-        // Asumiendo que getStatsManager() o getStatsDao() existe en el bot
-        List<PlayStats> topSongs = bot.getStatsDao().getSongsByUser(userUid, limit, top);
-
-        if (topSongs.isEmpty()) {
-            bot.reply("[color=orange]No hay estadísticas registradas para " + userName + ".[/color]");
-            return;
-        }
-
-        bot.reply("[color=#ff0080][b]♕ Top " + playOrder + " escuchados de " + userName + " ♕[/b][/color]");
-        for (int i = 0; i < topSongs.size(); i++) {
-            PlayStats stat = topSongs.get(i);
-            bot.reply("[color=darkgreen]\t[b]#" + (i + 1)+ ".[/b][/color] " + stat.getTrack() + " [color=blue][" + stat.getPlayCount() + "][/color]");
-        }
+        processRequest(ctx.getUserUid(), ctx.getUserName(), ctx.getArgs(), top, true);
     }
 
     public void handleListGlobalSongs(CommandContext ctx, boolean top) {
-        String arg = ctx.getArgs();
+        processRequest(null, "del servidor", ctx.getArgs(), top, false);
+    }
 
-        int limit;
-        try {
-            limit = arg.isEmpty() ? 5 : Integer.parseInt(arg.split("\\s+")[0]);
-            if (limit > 20) limit = 20;
-        } catch (NumberFormatException e) {
-            limit = 5;
-        }
+    private void processRequest(String uid, String name, String args, boolean top, boolean isUser) {
+        int limit = parseLimit(args);
 
-        String playOrder = top ? "más" : "menos";
-        List<PlayStats> topSongs = bot.getStatsDao().getGlobalSongs(limit, top);
+        List<PlayStats> stats = isUser
+                ? bot.getStatsDao().getSongsByUser(uid, limit, top)
+                : bot.getStatsDao().getGlobalSongs(limit, top);
 
-        if (topSongs.isEmpty()) {
-            bot.reply("[color=orange]No hay estadísticas globales registradas aún.[/color]");
+        if (stats.isEmpty()) {
+            replyWarning("No hay estadísticas registradas para " + name + ".");
             return;
         }
 
-        bot.reply("[color=#ff0080][b]♕ Top " + playOrder + " escuchados del servidor ♕[/b][/color]");
-        for (int i = 0; i < topSongs.size(); i++) {
-            PlayStats stat = topSongs.get(i);
-            bot.reply("[color=darkgreen]\t[b]#" + (i + 1)+ "[/b][/color] " + stat.getTrack() + " [color=blue][" + stat.getPlayCount() + "][/color]");
-        }
+        String order = top ? "más" : "menos";
+        replyListHeader("Top " + order + " escuchados " + (isUser ? "de " : "") + name);
+
+        replyList(formatStatsToStrings(stats), limit);
+    }
+
+    private int parseLimit(String arg) {
+        try {
+            int val = arg.isEmpty() ? 5 : Integer.parseInt(arg.split("\\s+")[0]);
+            return Math.min(val, 20);
+        } catch (Exception e) { return 5; }
+    }
+
+    private List<String> formatStatsToStrings(List<PlayStats> stats) {
+        return stats.stream()
+                .map(s -> s.getTrack() + " [color=" + C_MUSIC + "][" + s.getPlayCount() + "][/color]")
+                .toList();
     }
 }
