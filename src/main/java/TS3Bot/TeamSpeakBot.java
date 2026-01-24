@@ -91,7 +91,6 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
         });
     }
     private void setupBotConfiguration() {
-        // 1. Obtener Nickname (Prioridad: Server > Default)
         this.botNickname = "TS3Bot";
         if (serverConfig.has("bot") && serverConfig.getAsJsonObject("bot").has("nickname")) {
             this.botNickname = serverConfig.getAsJsonObject("bot").get("nickname").getAsString();
@@ -249,16 +248,21 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
             QueuedTrack queuedTrack = player.getCurrentTrack();
             Track trackActual = queuedTrack.getTrack();
 
-            if (trackActual.getAlbum() == null || trackActual.getAlbum().isEmpty()) {
+            String albumUrl = trackActual.getAlbumUrl();
+
+            if (albumUrl == null || albumUrl.isEmpty()) {
                 try {
                     Track fullMetadata = YouTubeHelper.getMetadataViaSocket(trackActual.getUuid());
-                    trackActual.setAlbumUrl(fullMetadata.getAlbumUrl());
+                    albumUrl = fullMetadata.getAlbumUrl();
+                    trackActual.setAlbumUrl(albumUrl);
                 } catch (Exception e) {
                     System.err.println("[TrackListener] No se pudo obtener metadata: " + e.getMessage());
                 }
             }
 
-            discordService.setAvatarUrl(trackActual.getAlbumUrl());
+            if (albumUrl != null && !albumUrl.isEmpty()) {
+                discordService.setAvatarUrl(albumUrl);
+            }
 
             String baseNick = "[" + JsonHelper.getString(defaultConfig, serverConfig, "bot.nickname") + "] - " + trackActual.getTitle();
             String newNick = baseNick;
@@ -277,7 +281,7 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
                 System.err.println("Error cambiando nick: " + e.getMessage());
             }
 
-            replyPlayingListener(trackActual + queuedTrack.toString());
+            replyPlayingListener(queuedTrack.toString());
 
             if (userUid == null) return;
             if (trackUuid == null) return;

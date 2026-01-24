@@ -2,16 +2,14 @@
 setlocal EnableDelayedExpansion
 title Configurador TS3 Bot
 
-:: --- COLORES (Simulados) ---
 echo ==========================================
 echo      CONFIGURADOR RAPIDO (WINDOWS)
 echo ==========================================
 echo.
 
-:: --- VALORES POR DEFECTO ---
 set "DEFAULT_NAME=TS3_Bot"
 set "DEFAULT_IP=127.0.0.1"
-set "ID_FILE=identity_pi.ini"
+set "ID_FILE=identity.ini"
 set "VOLUME=50"
 set "TIMEOUT=10000"
 
@@ -28,7 +26,16 @@ set "TS_IP=%DEFAULT_IP%"
 set /p "INPUT_IP=IP del Servidor TS3 [%DEFAULT_IP%]: "
 if not "%INPUT_IP%"=="" set "TS_IP=%INPUT_IP%"
 
-:: --- 2. GENERAR JSON ---
+:: --- 2. INTEGRACION CON DISCORD ---
+echo.
+echo --- Integracion con Discord ---
+echo Pega aqui tu Webhook URL para enviar notificaciones.
+echo Si no quieres usar Discord, simplemente presiona ENTER.
+
+set "DISCORD_WEBHOOK="
+set /p "DISCORD_WEBHOOK=Webhook URL: "
+
+:: --- 3. GENERAR JSON ---
 echo.
 echo Generando config.json...
 
@@ -48,7 +55,8 @@ echo     }
 echo   },
 echo   "servers": [
 echo     {
-echo       "address": "%TS_IP%"
+echo       "address": "%TS_IP%",
+echo       "discord_webhook": "%DISCORD_WEBHOOK%"
 echo     }
 echo   ]
 echo }
@@ -56,7 +64,7 @@ echo }
 
 echo [OK] config.json creado correctamente.
 
-:: --- 3. SPOTIFY API ---
+:: --- 4. SPOTIFY API ---
 echo.
 echo --- Spotify API ---
 
@@ -81,6 +89,6 @@ if /i "%CONF_SPOTIFY%"=="s" (
 
 echo.
 echo ==========================================
-echo             ¡LISTO!
+echo             LISTO!
 echo ==========================================
 pause

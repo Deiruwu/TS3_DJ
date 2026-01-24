@@ -39,7 +39,7 @@ public class AddToPlaylistCommand extends AsyncCommand {
 
     @Override
     public String getUsage() {
-        return getName().concat(getStrAliases()).concat(" <id_playlist> <canción/url>");
+        return getName().concat(getStrAliases()).concat(" <id_playlist> [canción/url]");
     }
 
     @Override
@@ -60,11 +60,6 @@ public class AddToPlaylistCommand extends AsyncCommand {
         }
 
         String[] parts = ctx.getSplitArgs(2);
-
-        if (parts.length < 1) {
-            replyUsage();
-            return;
-        }
 
         try {
             Playlist targetPlaylist = playlistUtils.getPlaylistByUserIndex(Integer.parseInt(parts[0]));
@@ -87,24 +82,25 @@ public class AddToPlaylistCommand extends AsyncCommand {
                 trackToAdd = current.getTrack();
             }
 
-            playlistUtils.addTrackToPlaylist(targetPlaylist, trackToAdd);
+            boolean addedToTarget = playlistUtils.addTrackToPlaylist(targetPlaylist, trackToAdd);
 
-            StringBuilder msg = new StringBuilder();
-            msg.append(targetPlaylist.getName());
-
-            Playlist personalPlaylist = playlistUtils.ensureUserFavoritesPlaylist(ctx.getUserUid(), ctx.getUserName());
-
-            if (personalPlaylist != null && personalPlaylist.getId() != targetPlaylist.getId()) {
-                playlistUtils.addTrackToPlaylist(personalPlaylist, trackToAdd);
-                msg.append(" y a [i]tus favoritos[/i]");
+            Playlist favorites = playlistUtils.ensureUserFavoritesPlaylist(ctx.getUserUid(), ctx.getUserName());
+            boolean addedToFavorites = false;
+            if (favorites != null && favorites.getId() != targetPlaylist.getId()) {
+                addedToFavorites = playlistUtils.addTrackToPlaylist(favorites, trackToAdd);
             }
 
-            replyPlaylistAction(trackToAdd + " añadida a ",msg.toString());
+            if (addedToTarget && addedToFavorites) {
+                replySuccess("[b]" + trackToAdd.getTitle() + "[/b] añadida a " + targetPlaylist.getName() + " y a [i]tus favoritos[/i]");
+            } else if (addedToTarget) {
+                replySuccess("[b]" + trackToAdd.getTitle() + "[/b] añadida a " + targetPlaylist.getName());
+            } else {
+                replyWarning("[b]" + trackToAdd.getTitle() + "[/b] ya estaba en " + targetPlaylist.getName());
+            }
 
         } catch (NumberFormatException e) {
             replyError("El ID de la playlist debe ser un número.");
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-}
+    }}

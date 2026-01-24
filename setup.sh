@@ -8,20 +8,18 @@ NC='\033[0m'
 echo -e "${GREEN}=== Configurador Rápido del Bot (Sin dependencias) ===${NC}"
 
 # Valores por defecto
-ID_FILE="identity_pi.ini"
+ID_FILE="identity.ini"
 VOLUME="50"
 TIMEOUT="10000"
 
-# Función simple para preguntar sin líos de comillas
+# Función simple para preguntar
 ask() {
     local prompt="$1"
     local default="$2"
     local var_name="$3"
 
-    # Imprimimos la pregunta
     echo -ne "${CYAN}${prompt} [${default}]: ${NC}"
     read input
-    # Asignamos valor por defecto si está vacío
     eval $var_name="${input:-$default}"
 }
 
@@ -31,7 +29,13 @@ echo -e "\n${GREEN}--- Configuración General ---${NC}"
 ask "Nombre del Bot" "TS3_Bot" BOT_NAME
 ask "IP del Servidor TS3" "127.0.0.1" TS_IP
 
-# --- 2. GENERAR JSON (Usando cat en lugar de jq) ---
+# --- 2. DISCORD ---
+echo -e "\n${GREEN}--- Integración con Discord ---${NC}"
+echo "Pega aquí tu Webhook URL para enviar notificaciones."
+echo "Si no quieres usar Discord, simplemente presiona ENTER."
+ask "Webhook URL" "" DISCORD_WEBHOOK
+
+# --- 3. GENERAR JSON ---
 echo -e "\nGenerando config.json..."
 
 cat > config.json <<EOF
@@ -50,15 +54,15 @@ cat > config.json <<EOF
   },
   "servers": [
     {
-      "address": "$TS_IP"
+      "address": "$TS_IP",
+      "discord_webhook": "$DISCORD_WEBHOOK"
     }
   ]
 }
 EOF
 
-echo -e "${GREEN}✔ config.json creado correctamente.${NC}"
+echo -e "${GREEN}config.json creado correctamente.${NC}"
 
-# --- 3. SPOTIFY (Opcional) ---
 echo -e "\n${GREEN}--- Spotify API ---${NC}"
 
 if [ ! -d "YoutubeApi" ]; then
@@ -67,14 +71,13 @@ fi
 
 ask "¿Configurar credenciales de Spotify? (s/n)" "n" CONFIGURE_SPOTIFY
 
-# Convertimos a minúsculas para comparar
 if [[ "${CONFIGURE_SPOTIFY,,}" == "s" ]]; then
     ask "Client ID" "" SPOTIFY_ID
     ask "Client Secret" "" SPOTIFY_SECRET
 
     echo "SPOTIFY_CLIENT_ID=$SPOTIFY_ID" > YoutubeApi/.env
     echo "SPOTIFY_CLIENT_SECRET=$SPOTIFY_SECRET" >> YoutubeApi/.env
-    echo -e "${GREEN}✔ Credenciales guardadas.${NC}"
+    echo -e "${GREEN}Credenciales guardadas.${NC}"
 else
     echo "Saltando configuración de Spotify."
 fi

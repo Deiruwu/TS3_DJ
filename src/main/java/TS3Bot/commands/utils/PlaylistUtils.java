@@ -187,8 +187,7 @@ public class PlaylistUtils {
      * @return true si se agregó exitosamente
      */
     public boolean addTrackToPlaylist(Playlist playlist, Track track) {
-        bot.getPlaylistManager().addSongToPlaylist(playlist.getId(), track.getUuid());
-        return true; // El DAO no devuelve boolean, asumimos éxito
+        return bot.getPlaylistManager().addSongToPlaylist(playlist.getId(), track.getUuid());
     }
 
     /**

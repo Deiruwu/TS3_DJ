@@ -44,7 +44,7 @@ public class ShowPlaylistCommand extends Command {
 
     @Override
     public String getUsage() {
-        return getName() + getStrAliases() + " <id_playlist> <cantidad> <--latest>";
+        return getName() + getStrAliases() + " <id_playlist> [cantidad] [--latest]";
     }
 
     @Override
