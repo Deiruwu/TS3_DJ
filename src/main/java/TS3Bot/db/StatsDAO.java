@@ -13,9 +13,9 @@ public class StatsDAO {
      * Si es la primera vez, crea el registro. Si no, suma +1 al contador y actualiza la fecha.
      */
     public void registrarReproduccion(String userUid, String songUuid) {
-        String sql = "INSERT INTO user_play_stats (user_uid, song_uuid, play_count, last_played_at) " +
+        String sql = "INSERT INTO user_play_stats (user_uid, track_uuid, play_count, last_played_at) " +
                 "VALUES (?, ?, 1, CURRENT_TIMESTAMP) " +
-                "ON CONFLICT(user_uid, song_uuid) " +
+                "ON CONFLICT(user_uid, track_uuid) " +
                 "DO UPDATE SET " +
                 "play_count = play_count + 1, " +
                 "last_played_at = CURRENT_TIMESTAMP";
@@ -44,7 +44,7 @@ public class StatsDAO {
 
         String sql = "SELECT s.*, ups.play_count, ups.last_played_at, ups.user_uid " +
                 "FROM user_play_stats ups " +
-                "JOIN songs s ON ups.song_uuid = s.uuid " +
+                "JOIN songs s ON ups.track_uuid = s.uuid " +
                 "WHERE ups.user_uid = ? " +
                 "ORDER BY ups.play_count " + order + " " +
                 "LIMIT ?";
@@ -60,11 +60,14 @@ public class StatsDAO {
                     Track track = new Track(
                             rs.getString("uuid"),
                             rs.getString("title"),
-                            rs.getString("artist"),
-                            rs.getString("album"),
-                            rs.getString("path"),
-                            rs.getLong("duration")
-                    );
+                            rs.getString("artist")).
+                            setAlbum(rs.getString("album")).
+                            setThumbnail(rs.getString("thumbnail")).
+                            setPath(rs.getString("path")).
+                            setDuration(rs.getLong("duration")).
+                            setBpm(rs.getInt("bpm")).
+                            setCamelotKey(rs.getString("camelot_key")
+                            );
 
                     PlayStats stat = new PlayStats(
                             rs.getString("user_uid"),
@@ -90,8 +93,8 @@ public class StatsDAO {
 
         String sql = "SELECT s.*, SUM(ups.play_count) as total_plays " +
                 "FROM user_play_stats ups " +
-                "JOIN songs s ON ups.song_uuid = s.uuid " +
-                "GROUP BY ups.song_uuid " +
+                "JOIN songs s ON ups.track_uuid = s.uuid " +
+                "GROUP BY ups.track_uuid " +
                 "ORDER BY total_plays " + order + " " +
                 "LIMIT ?";
 
@@ -105,11 +108,14 @@ public class StatsDAO {
                     Track track = new Track(
                             rs.getString("uuid"),
                             rs.getString("title"),
-                            rs.getString("artist"),
-                            rs.getString("album"),
-                            rs.getString("path"),
-                            rs.getLong("duration")
-                    );
+                            rs.getString("artist")).
+                            setAlbum(rs.getString("album")).
+                            setThumbnail(rs.getString("thumbnail")).
+                            setPath(rs.getString("path")).
+                            setDuration(rs.getLong("duration")).
+                            setBpm(rs.getInt("bpm")).
+                            setCamelotKey(rs.getString("camelot_key")
+                            );
 
                     // Usamos "GLOBAL" como userUid para indicar que es un agregado
                     PlayStats stat = new PlayStats(

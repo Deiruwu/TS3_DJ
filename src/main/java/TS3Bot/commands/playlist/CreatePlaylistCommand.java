@@ -70,7 +70,6 @@ public class CreatePlaylistCommand extends Command {
         int id = bot.getPlaylistManager().createPlaylist(
                 name,
                 ctx.getUserUid(),
-                ctx.getUserName(),
                 PlaylistType.USER
         );
 

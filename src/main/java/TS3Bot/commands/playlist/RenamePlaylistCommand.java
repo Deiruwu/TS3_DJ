@@ -82,7 +82,7 @@ public class RenamePlaylistCommand extends Command {
             return;
         }
 
-        boolean success = bot.getPlaylistManager().updatePlaylistName(playlist.getId(), newName);
+        boolean success = bot.getPlaylistManager().updateName(playlist.getId(), newName);
 
         if (success) {
             bot.refreshPlaylists();

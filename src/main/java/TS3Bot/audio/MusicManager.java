@@ -1,82 +1,83 @@
 package TS3Bot.audio;
 
+import TS3Bot.audio.validation.AutoTrackValidator;
 import TS3Bot.db.TrackDAO;
 import TS3Bot.model.Track;
 import java.io.File;
 
 public class MusicManager {
     private final TrackDAO dao;
+    private final AutoTrackValidator validator;
 
     public MusicManager() {
         this.dao = new TrackDAO();
+        this.validator = new AutoTrackValidator();
     }
 
     public Track resolve(String query) throws Exception {
+        Track track = resolveTrackSource(query); // (Lógica extraída abajo para limpieza)
+
+        if (track == null) throw new Exception("No se pudo resolver el track.");
+
+        // 1. VALIDACIÓN RÁPIDA (Síncrona)
+        // Repara foto, album, titulo si faltan. Es rápido.
+        if (validator.validateAndRepair(track)) {
+            dao.saveTrack(track);
+        }
+
+        // 2. ANÁLISIS PROFUNDO (Asíncrono / Cola)
+        // Esto obtiene BPM y Key en segundo plano sin detener la música.
+        if (track.isDownloaded()) {
+            AnalysisScheduler.submit(track);
+        }
+
+        return track;
+    }
+
+    // Tu lógica original de resolución, organizada:
+    private Track resolveTrackSource(String query) throws Exception {
+        query = query.trim();
         String uuid = null;
 
-        // Limpiamos espacios accidentales
-        query = query.trim();
-
-        // 0. VÍA DIRECTA (UUID: 11 chars)
+        // A. Vía Directa (UUID)
         if (query.matches("^[a-zA-Z0-9_-]{11}$")) {
             Track t = dao.getTrack(query);
-            if (t != null && t.getPath() != null && new File(t.getPath()).exists()) {
-                System.out.println("[Manager] Track encontrado (UUID Directo): " + t);
-                enrichMetadataAsync(t);
-                return t;
-            }
+            if (t != null && t.isDownloaded()) return t;
+            uuid = query; // Si no está descargado, usamos el UUID para bajarlo
         }
 
-        // 1. VÍA RÁPIDA (Link)
-        if (query.contains("youtube.com") || query.contains("youtu.be")) {
-            if (query.contains("v=")) uuid = query.split("v=")[1].split("&")[0];
-            else if (query.contains("youtu.be/")) uuid = query.split("youtu.be/")[1].split("\\?")[0];
-
+        // B. Vía Link
+        if (uuid == null && (query.contains("youtube.com") || query.contains("youtu.be"))) {
+            uuid = extractUUID(query);
             if (uuid != null) {
                 Track t = dao.getTrack(uuid);
-                if (t != null && t.getPath() != null && new File(t.getPath()).exists()) {
-                    System.out.println("[Manager] Track encontrado (Link): " + t);
-                    enrichMetadataAsync(t);
-                    return t;
-                }
+                if (t != null && t.isDownloaded()) return t;
             }
         }
 
-        // 2. CONSULTA A PYTHON (Metadatos frescos)
-        Track track = YouTubeHelper.getMetadataViaSocket(query);
-        uuid = track.getUuid();
-
-        // 3. RE-VERIFICACIÓN DB (Cache local + Metadatos frescos)
-        Track cached = dao.getTrack(uuid);
-        if (cached != null && new File(cached.getPath()).exists()) {
-            System.out.println("[Manager] Track encontrado (Búsqueda): " + cached);
-            return cached;
+        // C. Descarga (Si no estaba en DB o es búsqueda)
+        // Si ya tenemos UUID pero no archivo, evitamos llamar a Python metadata innecesariamente
+        Track track;
+        if (uuid != null) {
+            // Si tenemos UUID, podemos ir directo a metadata por ID
+            track = MetadataClient.getMetadata(uuid);
+        } else {
+            // Búsqueda de texto normal
+            track = MetadataClient.getMetadata(query);
         }
 
-        // 4. DESCARGA
-        File file = YouTubeHelper.downloadCompressed(track);
-        System.out.println("[Manager] Track descargado: " + track);
-
-        // 5. GUARDAR PATH
+        // Descargamos
+        File file = MetadataClient.downloadCompressed(track);
         track.setPath(file.getAbsolutePath());
         dao.saveTrack(track);
 
         return track;
     }
 
-    /**
-     * Actualiza metadatos (imagen/avatar) en segundo plano sin bloquear la música.
-     */
-    private void enrichMetadataAsync(Track track) {
-        new Thread(() -> {
-            try {
-                Track meta = YouTubeHelper.getMetadataViaSocket(track.getUuid());
-                if (meta != null) {
-                    System.out.println("[Manager] Metadatos background OK: " + track.getTitle());
-                }
-            } catch (Exception e) {
-                System.err.println("[Manager] Error metadata async: " + e.getMessage());
-            }
-        }).start();
+    private String extractUUID(String url) {
+        // Tu metodo extractUUID original
+        if (url.contains("v=")) return url.split("v=")[1].split("&")[0];
+        else if (url.contains("youtu.be/")) return url.split("youtu.be/")[1].split("\\?")[0];
+        return null;
     }
 }

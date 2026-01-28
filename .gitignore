@@ -16,6 +16,8 @@ target/
 
 # Bases de datos y SQLite
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
 
@@ -31,7 +33,7 @@ venv/
 config.json
 *.ini
 .env
-YoutubeApi/.cache
+MetadataHubServices/.cache
 
 # Archivos multimedia y temporales
 *.wav

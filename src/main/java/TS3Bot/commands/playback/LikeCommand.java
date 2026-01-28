@@ -110,7 +110,7 @@ public class LikeCommand extends AsyncCommand {
         StringBuilder lastAdded = new StringBuilder();
 
         for (Track t : tracksToLike) {
-            boolean added = bot.getPlaylistManager().addSongToPlaylist(favorites.getId(), t.getUuid());
+            boolean added = bot.getPlaylistManager().addTrackToPlaylist(favorites.getId(), t.getUuid(), ctx.getUserUid());
             if (added) {
                 addedCount++;
                 lastAdded = new StringBuilder(t.getTitle());

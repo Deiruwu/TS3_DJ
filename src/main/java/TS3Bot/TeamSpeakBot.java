@@ -1,13 +1,15 @@
 package TS3Bot;
 
+import TS3Bot.audio.MetadataClient;
 import TS3Bot.audio.MusicManager;
 import TS3Bot.audio.TrackScheduler;
-import TS3Bot.audio.YouTubeHelper;
+import TS3Bot.audio.download.listener.DownloadPipelineListener;
 import TS3Bot.commands.*;
 import TS3Bot.commands.playback.*;
 import TS3Bot.commands.playlist.*;
 import TS3Bot.commands.playlist.sets.*;
 import TS3Bot.commands.stats.*;
+import TS3Bot.commands.utilities.ReindexCommand;
 import TS3Bot.config.JsonHelper;
 import TS3Bot.db.PlaylistDAO;
 import TS3Bot.db.TrackDAO;
@@ -54,6 +56,8 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
     private String botNickname;
     private ConfirmationManager confirmationManager;
 
+    private final MetadataClient metadataClient;
+
     public List<Playlist> allPlaylists;
 
     public TeamSpeakBot(JsonObject rootConfig, File configFile) {
@@ -81,15 +85,15 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
 
         this.confirmationManager = new ConfirmationManager();
 
-        setupBotConfiguration();
+        this.metadataClient = new MetadataClient();
 
+        setupBotConfiguration();
+        setupDownloadListener();
         setupTrackListener();
         registerCommands();
 
-        YouTubeHelper.setDownloadListener(track -> {
-            replyDowload(track.toString());
-        });
     }
+
     private void setupBotConfiguration() {
         this.botNickname = "TS3Bot";
         if (serverConfig.has("bot") && serverConfig.getAsJsonObject("bot").has("nickname")) {
@@ -154,6 +158,8 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
         commandRegistry.register(new LeastCommand(this));
         commandRegistry.register(new TopGlobalCommand(this));
         commandRegistry.register(new LeastGlobalCommand(this));
+
+        commandRegistry.register(new ReindexCommand(this));
 
         commandRegistry.register(new HelpCommand(this));
 
@@ -243,26 +249,22 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
     // TRACK LISTENER
     // ========================================
 
+
+    private void setupDownloadListener() {
+        metadataClient.setDownloadListener(
+                new DownloadPipelineListener(this)
+        );
+    }
+
     private void setupTrackListener() {
         player.setTrackStartListener((userUid, userName, trackUuid) -> {
             QueuedTrack queuedTrack = player.getCurrentTrack();
             Track trackActual = queuedTrack.getTrack();
 
-            String albumUrl = trackActual.getAlbumUrl();
+           String albumUrl = trackActual.getThumbnail();
 
-            if (albumUrl == null || albumUrl.isEmpty()) {
-                try {
-                    Track fullMetadata = YouTubeHelper.getMetadataViaSocket(trackActual.getUuid());
-                    albumUrl = fullMetadata.getAlbumUrl();
-                    trackActual.setAlbumUrl(albumUrl);
-                } catch (Exception e) {
-                    System.err.println("[TrackListener] No se pudo obtener metadata: " + e.getMessage());
-                }
-            }
+           discordService.setAvatarUrl(albumUrl);
 
-            if (albumUrl != null && !albumUrl.isEmpty()) {
-                discordService.setAvatarUrl(albumUrl);
-            }
 
             String baseNick = "[" + JsonHelper.getString(defaultConfig, serverConfig, "bot.nickname") + "] - " + trackActual.getTitle();
             String newNick = baseNick;
@@ -367,20 +369,20 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
     // ========================================
 
     private void ensureUserPersonalPlaylist(String userUid, String userName, String songUuid) {
-        Playlist userPlaylist = playlistDao.getFavoritesPlaylistByUser(userUid);
+        Playlist userPlaylist = playlistDao.getFavoritesPlaylist(userUid);
 
         if (userPlaylist == null) {
             String playlistName = "Música de " + userName;
-            int newId = playlistDao.createPlaylist(playlistName, userUid, userName, PlaylistType.FAVORITES);
+            int newId = playlistDao.createPlaylist(playlistName, userUid, PlaylistType.FAVORITES);
 
             if (newId != -1) {
                 refreshPlaylists();
-                userPlaylist = playlistDao.getPlaylistById(newId);
+                userPlaylist = playlistDao.getPlaylist(newId);
             }
         }
 
         if (userPlaylist != null) {
-            playlistDao.addSongToPlaylist(userPlaylist.getId(), songUuid);
+            playlistDao.addTrackToPlaylist(userPlaylist.getId(), songUuid, userUid);
         }
     }
 
@@ -408,6 +410,9 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
             this.running = true;
             runConsoleLoop();
         } catch (Exception e) {
+            System.err.println("CRASH AL INICIAR:");
+            e.printStackTrace();
+
             stop();
         }
     }

@@ -1,7 +1,9 @@
 package TS3Bot.audio;
 
 import TS3Bot.model.QueuedTrack;
+import TS3Bot.model.ShuffleMode;
 import TS3Bot.model.Track;
+import TS3Bot.services.AutoDjService;
 import com.github.manevolent.ts3j.audio.Microphone;
 import com.github.manevolent.ts3j.command.CommandException;
 import com.github.manevolent.ts3j.enums.CodecType;
@@ -15,6 +17,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 public class TrackScheduler implements Microphone {
 
@@ -234,5 +237,18 @@ public class TrackScheduler implements Microphone {
     public byte[] provide() { byte[] d = packetQueue.poll(); return d != null ? d : new byte[0]; }
     public CodecType getCodec() { return CodecType.OPUS_MUSIC; }
     public void setVolume(int v) { this.volume = v / 100.0f; }
-    public void shuffle() { synchronized(songQueue){ Collections.shuffle(songQueue); } }
+
+    public void shuffle(ShuffleMode mode) {
+        synchronized (songQueue) {
+            if (songQueue.isEmpty()) return;
+
+            List<QueuedTrack> queuedList = new ArrayList<>(songQueue);
+
+            AutoDjService autoDj = new AutoDjService();
+            List<QueuedTrack> reordered = autoDj.shuffleQueue(queuedList, mode);
+
+            songQueue.clear();
+            songQueue.addAll(reordered);
+        }
+    }
 }

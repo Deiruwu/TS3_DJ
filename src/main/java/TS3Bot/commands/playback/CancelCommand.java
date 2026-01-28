@@ -1,7 +1,7 @@
 package TS3Bot.commands.playback;
 
 import TS3Bot.TeamSpeakBot;
-import TS3Bot.audio.YouTubeHelper;
+import TS3Bot.audio.MetadataClient;
 import TS3Bot.commands.Command;
 import TS3Bot.commands.CommandContext;
 
@@ -46,7 +46,7 @@ public class CancelCommand extends Command {
 
     @Override
     public void execute(CommandContext ctx) {
-        boolean killed = YouTubeHelper.cancelCurrentDownload();
+        boolean killed = MetadataClient.cancelCurrentDownload();
 
         if (killed) {
             replySuccess("[b]Descarga abortada.[/b] El proceso ha sido eliminado.");

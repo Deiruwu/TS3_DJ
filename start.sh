@@ -27,14 +27,14 @@ tmux send-keys -t $SESSION:0.0 "mvn clean compile exec:java -Dexec.mainClass=\"$
 # PANEL 2 (ABAJO): PYTHON API
 # --------------------------------------------------------
 tmux split-window -v -t $SESSION:0
-tmux send-keys -t $SESSION:0.1 "cd YoutubeApi" C-m
+tmux send-keys -t $SESSION:0.1 "cd MetadataHubServices" C-m
 
 # --- MAGIA PYTHON ---
 # Usamos el pip y python DEL entorno virtual (.venv/bin/...)
 # 1. Instalamos dependencias (silencioso para no llenar logs)
 tmux send-keys -t $SESSION:0.1 "./.venv/bin/pip install -r requirements.txt" C-m
 # 2. Corremos el script
-tmux send-keys -t $SESSION:0.1 "./.venv/bin/python3 YoutubeApi.py" C-m
+tmux send-keys -t $SESSION:0.1 "./.venv/bin/python3 MetadataHub.py" C-m
 
 # --------------------------------------------------------
 # FINALIZAR

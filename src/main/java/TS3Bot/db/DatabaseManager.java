@@ -1,51 +1,42 @@
 package TS3Bot.db;
 
+import org.flywaydb.core.Flyway;
 import org.sqlite.SQLiteConfig;
 
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.Scanner;
 
 public class DatabaseManager {
+    // Asegúrate de que este nombre coincida con tu archivo real
     private static final String URL = "jdbc:sqlite:bot_database.db";
-    private static final String SCHEMA_PATH = "/db/database.sql";
 
     public static void init() {
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+        try {
+            // Configuración de Flyway
+            Flyway flyway = Flyway.configure()
+                    .dataSource(URL, "", "") // SQLite no usa usuario/pass
+                    .locations("classpath:db/migration") // Donde pusiste V1 y V2
 
-            String sql = loadSqlFile();
+                    // --- LA PARTE CRÍTICA PARA NO PERDER DATOS ---
+                    // 1. Si encuentra una DB existente sin historial de Flyway...
+                    .baselineOnMigrate(true)
+                    // 2. ...asume que esa DB ya está en la versión 1.
+                    // (Esto hace que se SALTE el archivo V1__Esquema_Legacy.sql
+                    // y empiece a ejecutar directamente el V2__Migracion...)
+                    .baselineVersion("1")
 
-            if (sql == null || sql.isEmpty()) {
-                System.err.println("[DB Error] El archivo database.sql está vacío o no se encontró.");
-                return;
-            }
+                    .load();
 
-            stmt.executeUpdate(sql);
+            // Ejecuta las migraciones pendientes (En tu caso, correrá la V2)
+            flyway.migrate();
 
-            System.out.println("[DB] base de datos iniciada");
+            System.out.println("[DB] Base de datos migrada y lista (Flyway).");
 
-        } catch (SQLException e) {
-            System.err.println("[DB Error] Fallo SQL: " + e.getMessage());
-            e.printStackTrace();
         } catch (Exception e) {
-            System.err.println("[DB Error] Fallo al leer el archivo: " + e.getMessage());
+            System.err.println("[DB Error] Fallo crítico al migrar la base de datos:");
             e.printStackTrace();
-        }
-    }
-
-    private static String loadSqlFile() {
-        try (InputStream is = DatabaseManager.class.getResourceAsStream(SCHEMA_PATH)) {
-            if (is == null) return null;
-            try (Scanner scanner = new Scanner(is, StandardCharsets.UTF_8.name())) {
-                return scanner.useDelimiter("\\A").next();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+            System.exit(1);
         }
     }
 

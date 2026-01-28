@@ -84,7 +84,7 @@ public class PlaylistUtils {
 
         // Crear nueva playlist de favoritos
         String playlistName = "Música de " + userName;
-        int newId = bot.getPlaylistManager().createPlaylist(playlistName, userUid, userName,PlaylistType.FAVORITES);
+        int newId = bot.getPlaylistManager().createPlaylist(playlistName, userUid,PlaylistType.FAVORITES);
 
         if (newId == -1) return null; // Error al crear
 
@@ -186,8 +186,8 @@ public class PlaylistUtils {
      * @param track Canción a agregar
      * @return true si se agregó exitosamente
      */
-    public boolean addTrackToPlaylist(Playlist playlist, Track track) {
-        return bot.getPlaylistManager().addSongToPlaylist(playlist.getId(), track.getUuid());
+    public boolean addTrackToPlaylist(Playlist playlist, Track track, String addedByUid) {
+        return bot.getPlaylistManager().addTrackToPlaylist(playlist.getId(), track.getUuid(), addedByUid);
     }
 
     /**
@@ -198,14 +198,14 @@ public class PlaylistUtils {
      * @return true si se removió, false si no estaba
      */
     public boolean removeTrackFromPlaylist(Playlist playlist, Track track) {
-        return bot.getPlaylistManager().removeSongFromPlaylist(playlist.getId(), track.getUuid());
+        return bot.getPlaylistManager().removeTrackToPlaylist(playlist.getId(), track.getUuid());
     }
 
     /**
      * Obtiene todas las canciones de una playlist.
      */
     public List<Track> getTracksFromPlaylist(Playlist playlist) {
-        return bot.getPlaylistManager().getTracksFromPlaylist(playlist);
+        return bot.getPlaylistManager().getTracksFromPlaylist(playlist.getId(), PlaylistType.USER);
     }
 
     /**
@@ -214,21 +214,5 @@ public class PlaylistUtils {
     public boolean playlistContainsTrack(Playlist playlist, Track track) {
         List<Track> tracks = getTracksFromPlaylist(playlist);
         return tracks.stream().anyMatch(t -> t.getUuid().equals(track.getUuid()));
-    }
-
-    // ========================================
-    // HELPERS DE FORMATO
-    // ========================================
-
-    /**
-     * Genera un mensaje formateado para mostrar una playlist.
-     * Ejemplo: "#3 - Mi Playlist (15 canciones)"
-     */
-    public String formatPlaylistInfo(Playlist playlist, int displayIndex) {
-        int trackCount = getTracksFromPlaylist(playlist).size();
-        return String.format("#%d - %s (%d canciones)",
-                displayIndex,
-                playlist.getName(),
-                trackCount);
     }
 }

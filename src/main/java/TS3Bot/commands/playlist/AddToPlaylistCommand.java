@@ -82,12 +82,12 @@ public class AddToPlaylistCommand extends AsyncCommand {
                 trackToAdd = current.getTrack();
             }
 
-            boolean addedToTarget = playlistUtils.addTrackToPlaylist(targetPlaylist, trackToAdd);
+            boolean addedToTarget = playlistUtils.addTrackToPlaylist(targetPlaylist, trackToAdd, ctx.getUserUid());
 
             Playlist favorites = playlistUtils.ensureUserFavoritesPlaylist(ctx.getUserUid(), ctx.getUserName());
             boolean addedToFavorites = false;
             if (favorites != null && favorites.getId() != targetPlaylist.getId()) {
-                addedToFavorites = playlistUtils.addTrackToPlaylist(favorites, trackToAdd);
+                addedToFavorites = playlistUtils.addTrackToPlaylist(favorites, trackToAdd, ctx.getUserUid());
             }
 
             if (addedToTarget && addedToFavorites) {
