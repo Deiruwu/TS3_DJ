@@ -1,7 +1,6 @@
 import os
 import numpy as np
 import librosa
-from BeatNet.BeatNet import BeatNet
 import warnings
 
 warnings.filterwarnings('ignore')
@@ -10,18 +9,14 @@ warnings.filterwarnings('ignore')
 class AnalysisService:
     """
     Servicio para analizar archivos de audio y extraer BPM y tonalidad (Camelot).
+    Sin BeatNet / Torch.
     """
 
     def __init__(self):
-        print("[AnalysisService] Inicializando BeatNet...")
-        self.estimator = BeatNet(1, mode='offline', inference_model='DBN', plot=[], thread=False)
+        print("[AnalysisService] Inicializado (librosa-only)")
         self.camelot_map = self._build_camelot_map()
-        print("[AnalysisService] Listo")
 
     def _build_camelot_map(self):
-        """
-        Mapa de notacion musical a codigo Camelot.
-        """
         return {
             'B Maj': '1B', 'F# Maj': '2B', 'C# Maj': '3B', 'G# Maj': '4B',
             'D# Maj': '5B', 'A# Maj': '6B', 'F Maj': '7B', 'C Maj': '8B',
@@ -32,15 +27,6 @@ class AnalysisService:
         }
 
     def analyze(self, file_path):
-        """
-        Analiza archivo de audio y retorna BPM y Camelot Key.
-
-        Args:
-            file_path: Ruta absoluta al archivo de audio
-
-        Returns:
-            dict con {bpm: int, camelotKey: str} o None si falla
-        """
         if not os.path.exists(file_path):
             print(f"[AnalysisService] Archivo no existe: {file_path}")
             return None
@@ -64,15 +50,12 @@ class AnalysisService:
 
     def _get_bpm(self, file_path):
         """
-        Extrae BPM usando BeatNet.
+        Extrae BPM usando librosa.
         """
         try:
-            output = self.estimator.process(file_path)
-            beats = output[:, 0]
-            intervals = np.diff(beats)
-            avg_interval = np.median(intervals)
-            bpm = 60 / avg_interval
-            return int(round(bpm))
+            y, sr = librosa.load(file_path, mono=True)
+            tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
+            return int(round(float(tempo)))
         except Exception as e:
             print(f"[AnalysisService] Error BPM: {e}")
             return 0
@@ -84,12 +67,14 @@ class AnalysisService:
         try:
             y, sr = librosa.load(file_path, offset=30, duration=60)
             y_harmonic = librosa.effects.hpss(y)[0]
+
             chroma = librosa.feature.chroma_cqt(
                 y=y_harmonic,
                 sr=sr,
                 fmin=librosa.note_to_hz('C2'),
                 n_octaves=4
             )
+
             chroma_mean = np.mean(chroma, axis=1)
 
             major_profile = np.array([5.0, 2.0, 3.5, 2.0, 4.5, 4.0, 2.0, 4.5, 2.0, 3.5, 1.5, 4.0])
@@ -102,15 +87,8 @@ class AnalysisService:
                 scores[f"{i}_Min"] = np.corrcoef(chroma_mean, np.roll(minor_profile, i))[0, 1]
 
             best_key_code = max(scores, key=scores.get)
-            best_idx = int(best_key_code.split('_')[0])
-            best_mode = best_key_code.split('_')[1]
-
-            if best_mode == "Maj":
-                rel_minor_idx = (best_idx - 3) % 12
-                rel_minor_key = f"{rel_minor_idx}_Min"
-                if scores[rel_minor_key] > (scores[best_key_code] * 0.85):
-                    best_idx = rel_minor_idx
-                    best_mode = "Min"
+            best_idx, best_mode = best_key_code.split('_')
+            best_idx = int(best_idx)
 
             final_key = f"{notes[best_idx]} {best_mode}"
             return self._to_camelot(final_key)
@@ -120,9 +98,6 @@ class AnalysisService:
             return "?"
 
     def _to_camelot(self, key_str):
-        """
-        Convierte notacion musical a codigo Camelot.
-        """
         key_str = (key_str.replace("Db", "C#")
                    .replace("Eb", "D#")
                    .replace("Gb", "F#")
