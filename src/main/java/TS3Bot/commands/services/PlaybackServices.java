@@ -1,4 +1,4 @@
-package TS3Bot.commands.utils;
+package TS3Bot.commands.services;
 
 import TS3Bot.TeamSpeakBot;
 import TS3Bot.model.Track;
@@ -6,10 +6,10 @@ import TS3Bot.model.Track;
 import java.util.Arrays;
 import java.util.List;
 
-public class PlaybackUtils {
+public class PlaybackServices {
     private final TeamSpeakBot bot;
 
-    public PlaybackUtils(TeamSpeakBot bot) {
+    public PlaybackServices(TeamSpeakBot bot) {
         this.bot = bot;
     }
 

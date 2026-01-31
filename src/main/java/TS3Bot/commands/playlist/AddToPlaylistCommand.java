@@ -3,7 +3,8 @@ package TS3Bot.commands.playlist;
 import TS3Bot.TeamSpeakBot;
 import TS3Bot.commands.AsyncCommand;
 import TS3Bot.commands.CommandContext;
-import TS3Bot.commands.utils.PlaylistUtils;
+import TS3Bot.commands.services.PlaybackServices;
+import TS3Bot.commands.services.PlaylistServices;
 import TS3Bot.model.Playlist;
 import TS3Bot.model.QueuedTrack;
 import TS3Bot.model.Track;
@@ -19,12 +20,12 @@ import TS3Bot.model.Track;
  * @version 1.1
  */
 public class AddToPlaylistCommand extends AsyncCommand {
-    private final PlaylistUtils playlistUtils;
+    private final PlaylistServices playlistServices;
 
 
     public AddToPlaylistCommand(TeamSpeakBot bot) {
         super(bot);
-        this.playlistUtils = new PlaylistUtils(bot);
+        this.playlistServices = new PlaylistServices(bot);
     }
 
     @Override
@@ -62,7 +63,9 @@ public class AddToPlaylistCommand extends AsyncCommand {
         String[] parts = ctx.getSplitArgs(2);
 
         try {
-            Playlist targetPlaylist = playlistUtils.getPlaylistByUserIndex(Integer.parseInt(parts[0]));
+            Playlist targetPlaylist = playlistServices.getPlaylistByUserIndex(Integer.parseInt(parts[0]));
+
+            playlistServices.canModifyPlaylist(ctx.getUserId(), ctx.getUserUid(), targetPlaylist, ADMIN_GROUP_ID);
 
             if (targetPlaylist == null) {
                 replyError("Playlist #" + parts[0] + " no encontrada.");
@@ -82,12 +85,12 @@ public class AddToPlaylistCommand extends AsyncCommand {
                 trackToAdd = current.getTrack();
             }
 
-            boolean addedToTarget = playlistUtils.addTrackToPlaylist(targetPlaylist, trackToAdd, ctx.getUserUid());
+            boolean addedToTarget = playlistServices.addTrackToPlaylist(targetPlaylist, trackToAdd, ctx.getUserUid());
 
-            Playlist favorites = playlistUtils.ensureUserFavoritesPlaylist(ctx.getUserUid(), ctx.getUserName());
+            Playlist favorites = playlistServices.ensureUserFavoritesPlaylist(ctx.getUserUid(), ctx.getUserName());
             boolean addedToFavorites = false;
             if (favorites != null && favorites.getId() != targetPlaylist.getId()) {
-                addedToFavorites = playlistUtils.addTrackToPlaylist(favorites, trackToAdd, ctx.getUserUid());
+                addedToFavorites = playlistServices.addTrackToPlaylist(favorites, trackToAdd, ctx.getUserUid());
             }
 
             if (addedToTarget && addedToFavorites) {
@@ -100,7 +103,12 @@ public class AddToPlaylistCommand extends AsyncCommand {
 
         } catch (NumberFormatException e) {
             replyError("El ID de la playlist debe ser un número.");
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
+            replyWarning("No puedes añadir una canción a " + e.getMessage());
+        }
+
+        catch (Exception e) {
             e.printStackTrace();
         }
-    }}
+    }
+}

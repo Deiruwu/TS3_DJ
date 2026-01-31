@@ -3,7 +3,7 @@ package TS3Bot.commands.stats;
 import TS3Bot.TeamSpeakBot;
 import TS3Bot.commands.Command;
 import TS3Bot.commands.CommandContext;
-import TS3Bot.commands.utils.StatsUtils;
+import TS3Bot.commands.services.StatsServices;
 
 /**
  * Top menos escuchadas por el servidor
@@ -14,11 +14,11 @@ import TS3Bot.commands.utils.StatsUtils;
  */
 public class LeastGlobalCommand extends Command {
 
-    private final StatsUtils statsUtils;
+    private final StatsServices statsServices;
 
     public LeastGlobalCommand(TeamSpeakBot bot) {
         super(bot);
-        this.statsUtils = new StatsUtils(bot);
+        this.statsServices = new StatsServices(bot);
     }
 
     @Override
@@ -48,6 +48,6 @@ public class LeastGlobalCommand extends Command {
 
     @Override
     public void execute(CommandContext ctx) {
-        statsUtils.handleListGlobalSongs(ctx, false);
+        statsServices.handleListGlobalSongs(ctx, false);
     }
 }

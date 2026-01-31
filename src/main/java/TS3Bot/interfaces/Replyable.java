@@ -99,7 +99,7 @@ public interface Replyable {
         // Objeto -> Negrita (Blanco/Default)
         // 'y' y Tiempo -> Amber (Confirm)
         String msg = String.format(
-                "¿Estás seguro de [color=%s][b]%s[/b][/color] [b]%s[/b]? Escribe [color=%s][b]y[/b][/color] para confirmar. (Timeout: [color=%s][b]%ds[/b][/color])",
+                "¿Estás seguro/a de [color=%s][b]%s[/b][/color] [b]%s[/b]? Escribe [color=%s][b]y[/b][/color] para confirmar. (Timeout: [color=%s][b]%ds[/b][/color])",
                 C_HIGHLIGHT,           // Color Acción
                 action.toUpperCase(),  // Texto Acción
                 targetInfo,            // Texto Objeto

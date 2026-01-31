@@ -1,4 +1,4 @@
-package TS3Bot.commands.utils;
+package TS3Bot.commands.services;
 
 import TS3Bot.TeamSpeakBot;
 import TS3Bot.commands.CommandContext;
@@ -7,11 +7,11 @@ import TS3Bot.model.PlayStats;
 
 import java.util.List;
 
-public class StatsUtils implements Replyable {
+public class StatsServices implements Replyable {
 
     private final TeamSpeakBot bot;
 
-    public StatsUtils(TeamSpeakBot bot) {
+    public StatsServices(TeamSpeakBot bot) {
         this.bot = bot;
     }
 
@@ -30,8 +30,8 @@ public class StatsUtils implements Replyable {
         int limit = parseLimit(args);
 
         List<PlayStats> stats = isUser
-                ? bot.getStatsDao().getSongsByUser(uid, limit, top)
-                : bot.getStatsDao().getGlobalSongs(limit, top);
+                ? bot.getStatsDao().getTracksByUser(uid, limit, top)
+                : bot.getStatsDao().getGlobalTracks(limit, top);
 
         if (stats.isEmpty()) {
             replyWarning("No hay estadísticas registradas para " + name + ".");

@@ -1,4 +1,4 @@
-package TS3Bot.model;
+package TS3Bot.model.enums;
 
 public enum PlaylistType {
     USER,       // Playlist normal creada por usuario

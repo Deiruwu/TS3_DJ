@@ -3,8 +3,8 @@ package TS3Bot.commands.playback;
 import TS3Bot.TeamSpeakBot;
 import TS3Bot.commands.AsyncCommand;
 import TS3Bot.commands.CommandContext;
-import TS3Bot.commands.utils.PlaybackUtils;
-import TS3Bot.commands.utils.PlaylistUtils;
+import TS3Bot.commands.services.PlaybackServices;
+import TS3Bot.commands.services.PlaylistServices;
 import TS3Bot.model.Playlist;
 import TS3Bot.model.QueuedTrack;
 import TS3Bot.model.Track;
@@ -22,13 +22,13 @@ import java.util.List;
  * @version 1.0
  */
 public class LikeCommand extends AsyncCommand {
-    private final PlaylistUtils playlistUtils;
-    private final PlaybackUtils playbackUtils;
+    private final PlaylistServices playlistServices;
+    private final PlaybackServices playbackServices;
 
     public LikeCommand(TeamSpeakBot bot) {
         super(bot);
-        this.playlistUtils = new PlaylistUtils(bot);
-        this.playbackUtils = new PlaybackUtils(bot);
+        this.playlistServices = new PlaylistServices(bot);
+        this.playbackServices = new PlaybackServices(bot);
     }
 
     @Override
@@ -58,7 +58,7 @@ public class LikeCommand extends AsyncCommand {
 
     @Override
     public void executeAsync(CommandContext ctx) {
-        Playlist favorites = playlistUtils.ensureUserFavoritesPlaylist(ctx.getUserUid(), ctx.getUserName());
+        Playlist favorites = playlistServices.ensureUserFavoritesPlaylist(ctx.getUserUid(), ctx.getUserName());
         if (favorites == null) {
             replyError("No se pudo acceder a tu playlist de favoritos.");
             return;
@@ -76,7 +76,7 @@ public class LikeCommand extends AsyncCommand {
             }
         } else {
             try {
-                int[] indices = playbackUtils.resolveIndices(ctx.getArgsArray());
+                int[] indices = playbackServices.resolveIndices(ctx.getArgsArray());
                 List<QueuedTrack> queue = bot.getPlayer().getQueue();
 
                 if (queue.isEmpty()) {

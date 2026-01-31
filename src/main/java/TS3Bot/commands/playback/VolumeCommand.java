@@ -3,15 +3,22 @@ package TS3Bot.commands.playback;
 import TS3Bot.TeamSpeakBot;
 import TS3Bot.commands.Command;
 import TS3Bot.commands.CommandContext;
+import TS3Bot.config.JsonHelper;
 
 /**
  * Comando para ajustar el volumen de reproducción.
- *
+ * <p>
  * Permite establecer el volumen del bot en un rango de 0 a 100 (o más si se desea ganancia).
  * El cambio se aplica inmediatamente y se guarda en la configuración para persistir
  * tras reinicios.
+ * <p>
+ * Fix: Antes el volumen no se aplicaba hasta después de casi 3 segundo, ahora se aplica inmediatamente
+ * Mediante una nueva configuración que recorta el buffer del audio pre cargado, para asegurarnos que el volumen
+ * se aplica inmediatamente.
+ * <p>
+ * Además, el volumen ahora muestra el porcentaje actual al ejecutar el comando sin parametros
  *
- * @version 1.0
+ * @version 1.1
  */
 public class VolumeCommand extends Command {
 
@@ -54,7 +61,7 @@ public class VolumeCommand extends Command {
     @Override
     public void execute(CommandContext ctx) {
         if (!ctx.hasArgs()) {
-            replyUsage();
+            replyInfo("El volumen actual es [b]" + bot.getPlayer().getVolume() + "%[/b]");
             return;
         }
 

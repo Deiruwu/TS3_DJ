@@ -11,10 +11,6 @@ load_dotenv()
 
 
 class MetadataService:
-    """
-    Servicio para obtener metadatos de canciones desde YouTube Music y Spotify.
-    """
-
     def __init__(self):
         self.ytm = YTMusic()
         self.sp = self._init_spotify()
@@ -24,6 +20,7 @@ class MetadataService:
         client_secret = os.getenv('SPOTIFY_CLIENT_SECRET')
 
         if not client_id or not client_secret:
+            print(f"[metadataService] No se pudieron encontrar las credenciales de Spotify")
             return None
 
         auth_manager = SpotifyClientCredentials(
@@ -33,28 +30,20 @@ class MetadataService:
         return spotipy.Spotify(auth_manager=auth_manager)
 
     def get_metadata(self, query, use_filter=True):
-        """
-        Obtiene metadatos de una cancion.
-
-        Args:
-            query: URL de YouTube, ID, o termino de busqueda
-            use_filter: Si True usa filtro 'songs', si False busqueda sin filtro
-
-        Returns:
-            dict con metadata o None si falla
-        """
         print(f"[MetadataService] Query: '{query}' (filter={use_filter})")
 
         search_query = query
         video_id = None
 
+        # Lógica de Spotify intacta como pediste
         if "open.spotify.com" in query and self.sp:
             search_query = self._resolve_spotify(query)
             if not search_query:
                 return None
 
-        elif "youtube" in query or "youtu.be" in query:
-            video_id = self._extract_video_id(query)
+        # ID directo (11 caracteres)
+        elif re.match(r'^[a-zA-Z0-9_-]{11}$', query.strip()):
+            video_id = query.strip()
 
         if video_id:
             return self._get_by_id(video_id)
@@ -62,9 +51,6 @@ class MetadataService:
             return self._search(search_query, use_filter)
 
     def _resolve_spotify(self, spotify_url):
-        """
-        Convierte URL de Spotify en query de busqueda.
-        """
         for attempt in range(3):
             try:
                 track_info = self.sp.track(spotify_url)
@@ -79,21 +65,7 @@ class MetadataService:
                     time.sleep(1)
         return None
 
-    def _extract_video_id(self, url):
-        """
-        Extrae ID de video de URL de YouTube.
-        """
-        patterns = [r'(?:v=|\/)([0-9A-Za-z_-]{11}).*']
-        for pattern in patterns:
-            match = re.search(pattern, url)
-            if match:
-                return match.group(1)
-        return None
-
     def _get_by_id(self, video_id):
-        """
-        Obtiene metadata usando ID directo de YouTube.
-        """
         try:
             track = self.ytm.get_song(video_id)
             vid = track.get('videoDetails') or track.get('details')
@@ -108,7 +80,7 @@ class MetadataService:
                 "title": vid['title'],
                 "artist": vid['author'],
                 "duration": duration_seconds,
-                "album": "YouTube Video",
+                "album": track.get('album', {}).get('name', "Single"),
                 "thumbnail": thumb_url
             }
         except Exception as e:
@@ -116,9 +88,6 @@ class MetadataService:
             return None
 
     def _search(self, query, use_filter):
-        """
-        Busca cancion en YouTube Music.
-        """
         try:
             if use_filter:
                 print("[MetadataService] Buscando con filtro 'songs'")

@@ -3,6 +3,7 @@ package TS3Bot.commands.playback;
 import TS3Bot.TeamSpeakBot;
 import TS3Bot.commands.AsyncCommand;
 import TS3Bot.commands.CommandContext;
+import TS3Bot.commands.options.PlayOptions;
 import TS3Bot.model.QueuedTrack;
 import TS3Bot.model.Track;
 
@@ -56,8 +57,17 @@ public class PlayCommand extends AsyncCommand {
         }
 
         try {
-            Track track = bot.getMusicManager().resolve(ctx.getArgs());
-            QueuedTrack queuedTrack = new QueuedTrack(track, ctx.getUserUid(), ctx.getUserName(), true);
+            PlayOptions options = PlayOptions.fromContext(ctx);
+
+            Track track = bot.getMusicManager()
+                    .resolve(ctx.getArgs(), options);
+
+            QueuedTrack queuedTrack = new QueuedTrack(
+                    track,
+                    ctx.getUserUid(),
+                    ctx.getUserName(),
+                    true
+            );
 
             boolean isPlayingNow = bot.getPlayer().queue(queuedTrack);
             if (!isPlayingNow) replyMusicAdded(track.toString());
@@ -67,4 +77,5 @@ public class PlayCommand extends AsyncCommand {
             replyError("No se pudo encontrar o cargar la canción");
         }
     }
+
 }

@@ -1,4 +1,4 @@
-package TS3Bot.model;
+package TS3Bot.model.enums;
 
 public enum ShuffleMode {
     CHAOS,       // Aleatorio puro (Collections.shuffle) - Para fiestas locas

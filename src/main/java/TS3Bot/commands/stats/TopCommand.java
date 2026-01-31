@@ -3,7 +3,7 @@ package TS3Bot.commands.stats;
 import TS3Bot.TeamSpeakBot;
 import TS3Bot.commands.Command;
 import TS3Bot.commands.CommandContext;
-import TS3Bot.commands.utils.StatsUtils;
+import TS3Bot.commands.services.StatsServices;
 
 /**
  * Top canciones escuchadas por el usuario
@@ -14,11 +14,11 @@ import TS3Bot.commands.utils.StatsUtils;
  */
 public class TopCommand extends Command {
 
-    private final StatsUtils statsUtils;
+    private final StatsServices statsServices;
 
     public TopCommand(TeamSpeakBot bot) {
         super(bot);
-        this.statsUtils = new StatsUtils(bot);
+        this.statsServices = new StatsServices(bot);
     }
 
     @Override
@@ -48,6 +48,6 @@ public class TopCommand extends Command {
 
     @Override
     public void execute(CommandContext ctx) {
-        statsUtils.handleListSongsByUser(ctx, true);
+        statsServices.handleListSongsByUser(ctx, true);
     }
 }

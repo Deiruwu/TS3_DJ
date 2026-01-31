@@ -3,16 +3,16 @@ package TS3Bot.commands.playlist;
 import TS3Bot.TeamSpeakBot;
 import TS3Bot.commands.Command;
 import TS3Bot.commands.CommandContext;
-import TS3Bot.commands.utils.PlaylistUtils;
+import TS3Bot.commands.services.PlaylistServices;
 import TS3Bot.model.Playlist;
-import TS3Bot.model.PlaylistType;
+import TS3Bot.model.enums.PlaylistType;
 
 public class RenamePlaylistCommand extends Command {
-    private final PlaylistUtils playlistUtils;
+    private final PlaylistServices playlistServices;
 
     public RenamePlaylistCommand(TeamSpeakBot bot) {
         super(bot);
-        this.playlistUtils = new PlaylistUtils(bot);
+        this.playlistServices = new PlaylistServices(bot);
     }
 
     @Override
@@ -53,42 +53,49 @@ public class RenamePlaylistCommand extends Command {
             return;
         }
 
-        Playlist playlist = playlistUtils.resolvePlaylist(args[0]);
-        if (playlist == null) {
-            replyError("Playlist no encontrada.");
-            return;
-        }
+        Playlist playlist = playlistServices.resolvePlaylist(args[0]);
 
-        if (!playlistUtils.isOwner(playlist, ctx.getUserUid())) {
-            replyError("Solo puedes renombrar tus propias playlists.");
-            return;
-        }
+        try {
+            playlistServices.canModifyPlaylist(ctx.getUserId(), ctx.getUserUid(), playlist, ADMIN_GROUP_ID);
 
-        if (playlist.getType() != PlaylistType.USER) {
-            replyError("Solo puedes renombrar playlists de tipo USER.");
-            return;
-        }
+            if (playlist == null) {
+                replyError("Playlist no encontrada.");
+                return;
+            }
 
-        String newName = args[1].trim();
+            if (!playlistServices.isOwner(playlist, ctx.getUserUid())) {
+                replyError("Solo puedes renombrar tus propias playlists.");
+                return;
+            }
 
-        String validation = playlistUtils.validatePlaylistName(newName);
-        if (validation != null) {
-            replyError(validation);
-            return;
-        }
+            if (playlist.getType() != PlaylistType.USER) {
+                replyError("Solo puedes renombrar playlists de tipo USER.");
+                return;
+            }
 
-        if (playlistUtils.playlistNameExists(newName, ctx.getUserUid())) {
-            replyError("Ya tienes una playlist con ese nombre.");
-            return;
-        }
+            String newName = args[1].trim();
 
-        boolean success = bot.getPlaylistManager().updateName(playlist.getId(), newName);
+            String validation = playlistServices.validatePlaylistName(newName);
+            if (validation != null) {
+                replyError(validation);
+                return;
+            }
 
-        if (success) {
-            bot.refreshPlaylists();
-            replyPlaylistAction(playlist.getName() + " fue renombrada a ", newName);
-        } else {
-            replyError("No se pudo renombrar la playlist.");
+            if (playlistServices.playlistNameExists(newName, ctx.getUserUid())) {
+                replyError("Ya tienes una playlist con ese nombre.");
+                return;
+            }
+
+            boolean success = bot.getPlaylistManager().updateName(playlist.getId(), newName);
+
+            if (success) {
+                bot.refreshPlaylists();
+                replyPlaylistAction(playlist.getName() + " fue renombrada a ", newName);
+            } else {
+                replyError("No se pudo renombrar la playlist.");
+            }
+        } catch (IllegalStateException e) {
+            replyWarning("No puedes renombrar " + e.getMessage());
         }
     }
 }

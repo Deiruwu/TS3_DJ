@@ -32,11 +32,13 @@ public class DiscordService {
     private String webhookUrl;
     private String botUsername = "TS3 Bot";
     private final Map<Integer, String> connectedUsers = new ConcurrentHashMap<>();
+    private List<String> lastSentUsers = new ArrayList<>();
+
     private String AVATAR_URL = "https://imgur.com/a/WwaNHU4.png";
 
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private ScheduledFuture<?> pendingTask;
-    private static final int DELAY_SECONDS = 90;
+    private static final int DELAY_SECONDS = 120;
 
     public void setConfig(String webhookUrl, String botUsername) {
         this.webhookUrl = webhookUrl;
@@ -52,6 +54,8 @@ public class DiscordService {
 
             this.connectedUsers.clear();
 
+            List<String> snapshot = new ArrayList<>();
+
             for (SingleCommand row : response) {
                 if (row.has("clid") && row.has("client_nickname") && row.has("client_unique_identifier")) {
                     int type = row.has("client_type") ? Integer.parseInt(row.get("client_type").getValue()) : 0;
@@ -62,15 +66,21 @@ public class DiscordService {
                             int id = Integer.parseInt(row.get("clid").getValue());
                             String nick = row.get("client_nickname").getValue();
                             this.connectedUsers.put(id, nick);
+                            snapshot.add(nick);
                         }
                     }
                 }
             }
-            System.out.println("DiscordService: Lista inicial cargada. Silencioso.");
+
+            snapshot.sort(String::compareTo);
+            lastSentUsers = snapshot;
+
+            System.out.println("DiscordService: Lista inicial cargada. No se enviará actualización.");
         } catch (Exception e) {
             System.err.println("[DiscordService] Error fetchInitialList: " + e.getMessage());
         }
     }
+
 
     public void onUserJoin(int id, String name) {
         if (this.connectedUsers.containsKey(id)) return;
@@ -93,11 +103,18 @@ public class DiscordService {
         pendingTask = scheduler.schedule(this::sendUpdateNow, DELAY_SECONDS, TimeUnit.SECONDS);
     }
 
-    // Renombrado a sendUpdateNow para diferenciarlo
-// ... dentro de DiscordService.java ...
-
     private void sendUpdateNow() {
         if (this.webhookUrl == null || this.webhookUrl.isEmpty()) return;
+
+        List<String> currentUsers = new ArrayList<>(this.connectedUsers.values());
+        currentUsers.sort(String::compareTo);
+
+        if (currentUsers.equals(lastSentUsers)) {
+            System.out.println("[DiscordService] Lista igual a la anterior, no se envía nada.");
+            return;
+        }
+
+        lastSentUsers = new ArrayList<>(currentUsers);
 
         System.out.println("[DiscordService] Tiempo de espera terminado. Preparando notificación...");
 
@@ -124,7 +141,7 @@ public class DiscordService {
             JsonObject root = new JsonObject();
             root.addProperty("content", "-# Actividad en Teamspeak");
             root.addProperty("username", this.botUsername);
-            root.addProperty("avatar_url", this.AVATAR_URL); // Asegúrate de usar this.AVATAR_URL
+            root.addProperty("avatar_url", this.AVATAR_URL);
             root.add("embeds", embeds);
 
             // --- DEBUG: IMPRIMIR JSON ANTES DE ENVIAR ---

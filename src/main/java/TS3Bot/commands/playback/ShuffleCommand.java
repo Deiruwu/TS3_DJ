@@ -3,7 +3,7 @@ package TS3Bot.commands.playback;
 import TS3Bot.TeamSpeakBot;
 import TS3Bot.commands.Command;
 import TS3Bot.commands.CommandContext;
-import TS3Bot.model.ShuffleMode;
+import TS3Bot.model.enums.ShuffleMode;
 
 /**
  * Comando para mezclar la cola de reproducción con diferentes algoritmos.

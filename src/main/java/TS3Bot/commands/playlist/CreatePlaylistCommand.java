@@ -3,8 +3,8 @@ package TS3Bot.commands.playlist;
 import TS3Bot.TeamSpeakBot;
 import TS3Bot.commands.Command;
 import TS3Bot.commands.CommandContext;
-import TS3Bot.commands.utils.PlaylistUtils;
-import TS3Bot.model.PlaylistType;
+import TS3Bot.commands.services.PlaylistServices;
+import TS3Bot.model.enums.PlaylistType;
 
 /**
  * Crea una nueva playlist con un nombre unico
@@ -15,11 +15,11 @@ import TS3Bot.model.PlaylistType;
  * @version 1.0
  */
 public class CreatePlaylistCommand extends Command {
-    private final PlaylistUtils playlistUtils;
+    private final PlaylistServices playlistServices;
 
     public CreatePlaylistCommand(TeamSpeakBot bot) {
         super(bot);
-        this.playlistUtils = new PlaylistUtils(bot);
+        this.playlistServices = new PlaylistServices(bot);
     }
 
     @Override
@@ -56,13 +56,13 @@ public class CreatePlaylistCommand extends Command {
 
         String name = ctx.getArgs().trim();
 
-        String validationError = playlistUtils.validatePlaylistName(name);
+        String validationError = playlistServices.validatePlaylistName(name);
         if (validationError != null) {
             replyError(validationError);
             return;
         }
 
-        if (playlistUtils.playlistNameExists(name, ctx.getUserUid())) {
+        if (playlistServices.playlistNameExists(name, ctx.getUserUid())) {
             replyWarning("Ya existe una playlist con ese nombre.");
             return;
         }

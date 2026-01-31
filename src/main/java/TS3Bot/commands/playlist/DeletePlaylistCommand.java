@@ -3,17 +3,17 @@ package TS3Bot.commands.playlist;
 import TS3Bot.TeamSpeakBot;
 import TS3Bot.commands.Command;
 import TS3Bot.commands.CommandContext;
-import TS3Bot.commands.utils.PlaylistUtils;
+import TS3Bot.commands.services.PlaylistServices;
 import TS3Bot.model.Playlist;
-import TS3Bot.model.PlaylistType;
+import TS3Bot.model.enums.PlaylistType;
 
 public class DeletePlaylistCommand extends Command {
-    private final PlaylistUtils playlistUtils;
+    private final PlaylistServices playlistServices;
     private static final int CONFIRMATION_TIMEOUT = 20;
 
     public DeletePlaylistCommand(TeamSpeakBot bot) {
         super(bot);
-        this.playlistUtils = new PlaylistUtils(bot);
+        this.playlistServices = new PlaylistServices(bot);
     }
 
     @Override
@@ -48,43 +48,39 @@ public class DeletePlaylistCommand extends Command {
             return;
         }
 
-        Playlist playlist = playlistUtils.resolvePlaylist(ctx.getArgs());
+        Playlist playlist = playlistServices.resolvePlaylist(ctx.getArgs());
         if (playlist == null) {
             replyError("Playlist no encontrada.");
             return;
         }
 
-        if (!playlistUtils.isOwner(playlist, ctx.getUserUid())) {
-            replyWarning("Solo puedes eliminar tus propias playlists.");
-            return;
+        try {
+            playlistServices.canModifyPlaylist(ctx.getUserId(), ctx.getUserUid(), playlist, ADMIN_GROUP_ID);
+
+            int trackCount = playlistServices.getTracksFromPlaylist(playlist).size();
+
+            replyConfirmation(
+                    "Eliminar",
+                    playlist.getName(),
+                    trackCount + " canciones",
+                    CONFIRMATION_TIMEOUT
+            );
+
+            int clientId = bot.getClientIdByUid(ctx.getUserUid());
+            if (clientId != -1) {
+                replyPoke(clientId, "Confirma eliminación de playlist: " + playlist.getName());
+            }
+
+            bot.getConfirmationManager().requestConfirmation(
+                    ctx.getUserUid(),
+                    clientId,
+                    () -> performDeletion(playlist),
+                    () -> reply("[color=gray]Eliminación cancelada.[/color]"),
+                    CONFIRMATION_TIMEOUT
+            );
+        } catch (IllegalStateException e) {
+            replyError("No puedes eliminar " + e.getMessage());
         }
-
-        if (playlist.getType() != PlaylistType.USER) {
-            replyWarning("No puedes eliminar playlists de tipo " + playlist.getType() + ".");
-            return;
-        }
-
-        int trackCount = playlistUtils.getTracksFromPlaylist(playlist).size();
-
-        replyConfirmation(
-                "Eliminar",
-                playlist.getName(),
-                trackCount + " canciones",
-                CONFIRMATION_TIMEOUT
-        );
-
-        int clientId = bot.getClientIdByUid(ctx.getUserUid());
-        if (clientId != -1) {
-            replyPoke(clientId, "Confirma eliminación de playlist: " + playlist.getName());
-        }
-
-        bot.getConfirmationManager().requestConfirmation(
-                ctx.getUserUid(),
-                clientId,
-                () -> performDeletion(playlist),
-                () -> reply("[color=gray]Eliminación cancelada.[/color]"),
-                CONFIRMATION_TIMEOUT
-        );
     }
 
     private void performDeletion(Playlist playlist) {

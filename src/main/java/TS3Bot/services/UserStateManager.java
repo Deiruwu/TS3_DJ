@@ -22,7 +22,8 @@ public class UserStateManager {
     public void addUser(ClientJoinEvent e) {
         users.put(e.getClientId(), new ConnectedUser(
                 e.getClientId(), e.getClientDatabaseId(),
-                e.getUniqueClientIdentifier(), e.getClientNickname()
+                e.getUniqueClientIdentifier(), e.getClientNickname(),
+                e.getClientServerGroups()
         ));
     }
 
@@ -32,20 +33,12 @@ public class UserStateManager {
 
     public boolean updateUser(ClientUpdatedEvent e) {
         ConnectedUser user = users.get(e.getClientId());
-        // (Si el bot cambia su propio nick a "Bot - Cancion", no queremos spamear a Discord)
         if (user != null && e.getMap().containsKey("client_nickname")) {
             user.setNickname(e.getMap().get("client_nickname"));
 
             return e.getClientId() != botClientId;
         }
         return false;
-    }
-
-    public void clearAndSet(Map<Integer, String> rawMap) {
-        users.clear();
-        rawMap.forEach((id, nick) ->
-                users.put(id, new ConnectedUser(id, 0, "unknown", nick))
-        );
     }
 
     public List<String> getUserNames() {
@@ -61,5 +54,20 @@ public class UserStateManager {
                 .mapToInt(ConnectedUser::getClientId)
                 .findFirst()
                 .orElse(-1);
+    }
+
+    public boolean userBelongsToGroup(int userId, int groupId) {
+        if (!users.containsKey(userId)) return false;
+        return users.get(userId).hasGroupId(groupId);
+    }
+
+    public ConnectedUser getUserByName(String name) {
+        System.out.println("Buscando por nombre: " + name);
+
+        return users.values().stream()
+                .filter(u -> u.getClientId() != botClientId) // Ignoramos al bot mismo
+                .filter(u -> u.getNickname().equalsIgnoreCase(name)) // Búsqueda Case-Insensitive
+                .findFirst()
+                .orElse(null);
     }
 }

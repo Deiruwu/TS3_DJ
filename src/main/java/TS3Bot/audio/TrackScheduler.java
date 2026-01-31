@@ -1,23 +1,17 @@
 package TS3Bot.audio;
 
 import TS3Bot.model.QueuedTrack;
-import TS3Bot.model.ShuffleMode;
+import TS3Bot.model.enums.ShuffleMode;
 import TS3Bot.model.Track;
 import TS3Bot.services.AutoDjService;
 import com.github.manevolent.ts3j.audio.Microphone;
-import com.github.manevolent.ts3j.command.CommandException;
 import com.github.manevolent.ts3j.enums.CodecType;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
 public class TrackScheduler implements Microphone {
 
@@ -38,6 +32,7 @@ public class TrackScheduler implements Microphone {
     private TrackStartListener trackStartListener;
 
     private static final int MAX_BUFFER_SIZE = 150;
+    private static final int MIN_BUFFER_AFTER_VOLUME_CHANGE = 20;
 
     public TrackScheduler() {
         this.encoder = new CustomOpusEncoder();
@@ -236,7 +231,18 @@ public class TrackScheduler implements Microphone {
     public boolean isReady() { return !packetQueue.isEmpty() || playing; }
     public byte[] provide() { byte[] d = packetQueue.poll(); return d != null ? d : new byte[0]; }
     public CodecType getCodec() { return CodecType.OPUS_MUSIC; }
-    public void setVolume(int v) { this.volume = v / 100.0f; }
+    public int getVolume() { return (int) (volume * 100); }
+    public void setVolume(int v) {
+        this.volume = v / 100.0f;
+        int size = packetQueue.size();
+        int toRemove = size - MIN_BUFFER_AFTER_VOLUME_CHANGE;
+
+        if (toRemove <= 0) return;
+
+        for (int i = 0; i < toRemove; i++) {
+            packetQueue.poll();
+        }
+    }
 
     public void shuffle(ShuffleMode mode) {
         synchronized (songQueue) {

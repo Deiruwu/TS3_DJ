@@ -3,7 +3,7 @@ package TS3Bot.commands.playlist;
 import TS3Bot.TeamSpeakBot;
 import TS3Bot.commands.AsyncCommand;
 import TS3Bot.commands.CommandContext;
-import TS3Bot.commands.utils.PlaylistUtils;
+import TS3Bot.commands.services.PlaylistServices;
 import TS3Bot.model.Playlist;
 import TS3Bot.model.QueuedTrack;
 import TS3Bot.model.Track;
@@ -22,11 +22,11 @@ import TS3Bot.model.Track;
  */
 
 public class DislikeCommand extends AsyncCommand {
-    private final PlaylistUtils playlistUtils;
+    private final PlaylistServices playlistServices;
 
     public DislikeCommand(TeamSpeakBot bot) {
         super(bot);
-        this.playlistUtils = new PlaylistUtils(bot);
+        this.playlistServices = new PlaylistServices(bot);
     }
 
     @Override
@@ -56,7 +56,7 @@ public class DislikeCommand extends AsyncCommand {
 
     @Override
     public void executeAsync(CommandContext ctx) {
-        Playlist favoritesPlaylist = playlistUtils.ensureUserFavoritesPlaylist(
+        Playlist favoritesPlaylist = playlistServices.ensureUserFavoritesPlaylist(
                 ctx.getUserUid(),
                 ctx.getUserName()
         );
@@ -80,7 +80,7 @@ public class DislikeCommand extends AsyncCommand {
                 trackToRemove = bot.getMusicManager().resolve(ctx.getArgs());
             }
 
-            boolean success = playlistUtils.removeTrackFromPlaylist(favoritesPlaylist, trackToRemove);
+            boolean success = playlistServices.removeTrackFromPlaylist(favoritesPlaylist, trackToRemove);
 
             if (success) {
                 replyPlaylistAction("Eliminada de favoritos: ", trackToRemove.getTitle());

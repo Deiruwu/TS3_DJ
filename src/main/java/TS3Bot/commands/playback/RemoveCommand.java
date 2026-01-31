@@ -3,9 +3,7 @@ package TS3Bot.commands.playback;
 import TS3Bot.TeamSpeakBot;
 import TS3Bot.commands.Command;
 import TS3Bot.commands.CommandContext;
-import TS3Bot.commands.utils.PlaybackUtils;
-
-import java.util.Arrays;
+import TS3Bot.commands.services.PlaybackServices;
 
 /**
  * Comando para eliminar canciones específicas de la cola de reproducción.
@@ -17,11 +15,11 @@ import java.util.Arrays;
  * @version 1.0
  */
 public class RemoveCommand extends Command {
-    private final PlaybackUtils playbackutils;
+    private final PlaybackServices playbackutils;
 
     public RemoveCommand(TeamSpeakBot bot) {
         super(bot);
-        this.playbackutils = new PlaybackUtils(bot);
+        this.playbackutils = new PlaybackServices(bot);
     }
 
     @Override

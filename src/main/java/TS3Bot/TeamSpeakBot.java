@@ -9,7 +9,6 @@ import TS3Bot.commands.playback.*;
 import TS3Bot.commands.playlist.*;
 import TS3Bot.commands.playlist.sets.*;
 import TS3Bot.commands.stats.*;
-import TS3Bot.commands.utilities.ReindexCommand;
 import TS3Bot.config.JsonHelper;
 import TS3Bot.db.PlaylistDAO;
 import TS3Bot.db.TrackDAO;
@@ -17,6 +16,7 @@ import TS3Bot.db.StatsDAO;
 import TS3Bot.interfaces.Replyable;
 import TS3Bot.managers.ConfirmationManager;
 import TS3Bot.model.*;
+import TS3Bot.model.enums.PlaylistType;
 import TS3Bot.services.DiscordService;
 import TS3Bot.services.UserStateManager;
 import com.github.manevolent.ts3j.event.*;
@@ -135,6 +135,7 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
         commandRegistry.register(new ClearCommand(this));
         commandRegistry.register(new DeleteCommand(this));
         commandRegistry.register(new CancelCommand(this));
+        commandRegistry.register(new StopCommand(this));
 
         // Playlist commands
         commandRegistry.register(new CreatePlaylistCommand(this));
@@ -147,6 +148,7 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
         commandRegistry.register(new LikeCommand(this));
         commandRegistry.register(new RenamePlaylistCommand(this));
         commandRegistry.register(new DeletePlaylistCommand(this));
+        commandRegistry.register(new InviteCollaboratorCommand(this));
 
         // Set operations
         commandRegistry.register(new IntersectCommand(this));
@@ -158,8 +160,6 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
         commandRegistry.register(new LeastCommand(this));
         commandRegistry.register(new TopGlobalCommand(this));
         commandRegistry.register(new LeastGlobalCommand(this));
-
-        commandRegistry.register(new ReindexCommand(this));
 
         commandRegistry.register(new HelpCommand(this));
 
@@ -208,6 +208,7 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
         CommandContext ctx = new CommandContext(
                 cleanArgs.toString(),
                 e.getInvokerUniqueId(),
+                e.getInvokerId(),
                 e.getInvokerName(),
                 raw,
                 flags
@@ -222,7 +223,7 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
 
         if (e.getClientId() == client.getClientId()) return;
 
-        System.out.println("Nuevo usuario: " + e.getClientNickname());
+        System.out.println("Nuevo usuario: " + e.getClientNickname() + ". Grupos del servidor: " + e.getClientServerGroups() + ". id: " + e.getClientId());
 
         userManager.addUser(e);
         discordService.onUserJoin(e.getClientId(), e.getClientNickname());
@@ -325,6 +326,13 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
         return commandRegistry;
     }
 
+    public boolean userBelongsToGroup(int userId, int groupId) {
+        return userManager.userBelongsToGroup(userId, groupId);
+    }
+
+    public ConnectedUser getUserByName(String name) {
+        return userManager.getUserByName(name);
+    }
 
     public ConfirmationManager getConfirmationManager() {
         return confirmationManager;
@@ -345,9 +353,9 @@ public class TeamSpeakBot implements TS3Listener, Replyable {
         }
     }
 
-    public void replyPoke(int idUser,String msg){
+    public void replyPoke(int uidUser,String msg){
         try {
-            client.clientPoke(idUser, msg);
+            client.clientPoke(uidUser, msg);
         } catch (Exception ignored) {
         }
     }

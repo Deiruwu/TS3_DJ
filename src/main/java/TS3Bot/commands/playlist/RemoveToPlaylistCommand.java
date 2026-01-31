@@ -3,7 +3,7 @@ package TS3Bot.commands.playlist;
 import TS3Bot.TeamSpeakBot;
 import TS3Bot.commands.AsyncCommand;
 import TS3Bot.commands.CommandContext;
-import TS3Bot.commands.utils.PlaylistUtils;
+import TS3Bot.commands.services.PlaylistServices;
 import TS3Bot.model.Playlist;
 import TS3Bot.model.Track;
 
@@ -19,11 +19,11 @@ import java.util.stream.Collectors;
  * @version 1.1
  */
 public class RemoveToPlaylistCommand extends AsyncCommand {
-    private final PlaylistUtils playlistUtils;
+    private final PlaylistServices playlistServices;
 
     public RemoveToPlaylistCommand(TeamSpeakBot bot) {
         super(bot);
-        this.playlistUtils = new PlaylistUtils(bot);
+        this.playlistServices = new PlaylistServices(bot);
     }
 
     @Override
@@ -62,13 +62,16 @@ public class RemoveToPlaylistCommand extends AsyncCommand {
             String[] args = ctx.getArgsArray();
             int playlistIndex = Integer.parseInt(args[0]);
 
-            Playlist playlist = playlistUtils.getPlaylistByUserIndex(playlistIndex);
+            Playlist playlist = playlistServices.getPlaylistByUserIndex(playlistIndex);
+
+            playlistServices.canModifyPlaylist(ctx.getUserId(), ctx.getUserUid(), playlist, ADMIN_GROUP_ID);
+
             if (playlist == null) {
                 replyError("Playlist #" + playlistIndex + " no encontrada.");
                 return;
             }
 
-            if (!playlistUtils.isOwner(playlist, ctx.getUserUid())) {
+            if (!playlistServices.isOwner(playlist, ctx.getUserUid())) {
                 replyError("Solo puedes eliminar tus propias playlists.");
                 return;
             }
@@ -82,7 +85,7 @@ public class RemoveToPlaylistCommand extends AsyncCommand {
             }
 
             // Remover usando utils
-            boolean success = playlistUtils.removeTrackFromPlaylist(playlist, track);
+            boolean success = playlistServices.removeTrackFromPlaylist(playlist, track);
 
             if (success) {
                 replyPlaylistAction(track.getTitle() + " eliminada de ", playlist.getName());
@@ -92,6 +95,8 @@ public class RemoveToPlaylistCommand extends AsyncCommand {
 
         } catch (NumberFormatException e) {
             replyError("El ID debe ser numérico.");
+        } catch (IllegalArgumentException e) {
+          replyWarning("No puedes remover una canción de " + e.getMessage());
         } catch (Exception e) {
         }
     }

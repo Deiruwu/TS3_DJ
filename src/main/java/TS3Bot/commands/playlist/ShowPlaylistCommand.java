@@ -3,7 +3,7 @@ package TS3Bot.commands.playlist;
 import TS3Bot.TeamSpeakBot;
 import TS3Bot.commands.Command;
 import TS3Bot.commands.CommandContext;
-import TS3Bot.commands.utils.PlaylistUtils;
+import TS3Bot.commands.services.PlaylistServices;
 import TS3Bot.model.Playlist;
 import TS3Bot.model.Track;
 
@@ -25,11 +25,11 @@ import java.util.stream.Collectors;
  * @version 2.0
  */
 public class ShowPlaylistCommand extends Command {
-    private final PlaylistUtils playlistUtils;
+    private final PlaylistServices playlistServices;
 
     public ShowPlaylistCommand(TeamSpeakBot bot) {
         super(bot);
-        this.playlistUtils = new PlaylistUtils(bot);
+        this.playlistServices = new PlaylistServices(bot);
     }
 
     @Override
@@ -67,13 +67,13 @@ public class ShowPlaylistCommand extends Command {
 
         String[] args = ctx.getArgsArray();
 
-        Playlist playlist = playlistUtils.resolvePlaylist(args[0]);
+        Playlist playlist = playlistServices.resolvePlaylist(args[0]);
         if (playlist == null) {
             replyError("Playlist no encontrada.");
             return;
         }
 
-        List<Track> tracks = playlistUtils.getTracksFromPlaylist(playlist);
+        List<Track> tracks = playlistServices.getTracksFromPlaylist(playlist);
 
         if (tracks.isEmpty()) {
             replyError("La playlist " + playlist.getName() + " está vacía.");

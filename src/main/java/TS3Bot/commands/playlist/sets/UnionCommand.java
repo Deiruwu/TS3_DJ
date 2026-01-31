@@ -3,7 +3,7 @@ package TS3Bot.commands.playlist.sets;
 import TS3Bot.TeamSpeakBot;
 import TS3Bot.commands.Command;
 import TS3Bot.commands.CommandContext;
-import TS3Bot.commands.utils.PlaylistSetUtils;
+import TS3Bot.commands.services.PlaylistSetServices;
 
 /**
  * Carga a la cola las canciones de todas las playlists indicadas.
@@ -15,11 +15,11 @@ import TS3Bot.commands.utils.PlaylistSetUtils;
  */
 public class UnionCommand extends Command {
 
-    private final PlaylistSetUtils setUtils;
+    private final PlaylistSetServices setUtils;
 
     public UnionCommand(TeamSpeakBot bot) {
         super(bot);
-        this.setUtils = new PlaylistSetUtils(bot);
+        this.setUtils = new PlaylistSetServices(bot);
     }
 
     @Override

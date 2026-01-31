@@ -1,11 +1,14 @@
 package TS3Bot.audio;
 
 import TS3Bot.audio.validation.AutoTrackValidator;
+import TS3Bot.commands.options.PlayOptions;
 import TS3Bot.db.TrackDAO;
 import TS3Bot.model.Track;
+
 import java.io.File;
 
 public class MusicManager {
+
     private final TrackDAO dao;
     private final AutoTrackValidator validator;
 
@@ -14,19 +17,21 @@ public class MusicManager {
         this.validator = new AutoTrackValidator();
     }
 
-    public Track resolve(String query) throws Exception {
-        Track track = resolveTrackSource(query); // (Lógica extraída abajo para limpieza)
+    public Track resolve(String query) throws Exception{
+        return resolve(query, PlayOptions.defaults());
+    }
 
-        if (track == null) throw new Exception("No se pudo resolver el track.");
+    public Track resolve(String query, PlayOptions options) throws Exception {
+        Track track = resolveTrackSource(query, options);
 
-        // 1. VALIDACIÓN RÁPIDA (Síncrona)
-        // Repara foto, album, titulo si faltan. Es rápido.
+        if (track == null) {
+            throw new Exception("No se pudo resolver el track.");
+        }
+
         if (validator.validateAndRepair(track)) {
             dao.saveTrack(track);
         }
 
-        // 2. ANÁLISIS PROFUNDO (Asíncrono / Cola)
-        // Esto obtiene BPM y Key en segundo plano sin detener la música.
         if (track.isDownloaded()) {
             AnalysisScheduler.submit(track);
         }
@@ -34,39 +39,48 @@ public class MusicManager {
         return track;
     }
 
-    // Tu lógica original de resolución, organizada:
-    private Track resolveTrackSource(String query) throws Exception {
+    private Track resolveTrackSource(String query, PlayOptions options) throws Exception {
         query = query.trim();
         String uuid = null;
 
-        // A. Vía Directa (UUID)
+        // 1. UUID directo
         if (query.matches("^[a-zA-Z0-9_-]{11}$")) {
-            Track t = dao.getTrack(query);
-            if (t != null && t.isDownloaded()) return t;
-            uuid = query; // Si no está descargado, usamos el UUID para bajarlo
+            Track cached = dao.getTrack(query);
+            if (cached != null && cached.isDownloaded()) {
+                System.out.println("[Manager] Track encontrado (UUID): " + cached);
+                return cached;
+            }
+            uuid = query;
         }
 
-        // B. Vía Link
-        if (uuid == null && (query.contains("youtube.com") || query.contains("youtu.be"))) {
+        // 1.1. Link YouTube (Extraemos UUID)
+        if (uuid == null && isYouTubeLink(query)) {
             uuid = extractUUID(query);
             if (uuid != null) {
-                Track t = dao.getTrack(uuid);
-                if (t != null && t.isDownloaded()) return t;
+                Track cached = dao.getTrack(uuid);
+                if (cached != null && cached.isDownloaded()) {
+                    System.out.println("[Manager] Track encontrado (Link): " + cached);
+                    return cached;
+                }
             }
         }
 
-        // C. Descarga (Si no estaba en DB o es búsqueda)
-        // Si ya tenemos UUID pero no archivo, evitamos llamar a Python metadata innecesariamente
-        Track track;
-        if (uuid != null) {
-            // Si tenemos UUID, podemos ir directo a metadata por ID
-            track = MetadataClient.getMetadata(uuid);
-        } else {
-            // Búsqueda de texto normal
-            track = MetadataClient.getMetadata(query);
+        // 2. Metadata (Buscamos los metadatos si no se encontraba en la base de datos o es una busqueda por texto)
+        Track track = MetadataClient.getMetadata(
+                uuid != null ? uuid : query,
+                options
+        );
+
+        uuid = track.getUuid();
+
+        // 3. Buscamos la canción en la base de datos tras resolver el nombre -> UUID
+        Track cached = dao.getTrack(uuid);
+        if (cached != null && cached.isDownloaded()) {
+            System.out.println("[Manager] Track encontrado: " + cached);
+            return cached;
         }
 
-        // Descargamos
+        // 4. Descargamos la canción todas fallan (no se encontraba en la base de datos)
         File file = MetadataClient.downloadCompressed(track);
         track.setPath(file.getAbsolutePath());
         dao.saveTrack(track);
@@ -74,10 +88,13 @@ public class MusicManager {
         return track;
     }
 
+    private boolean isYouTubeLink(String query) {
+        return query.contains("youtube.com") || query.contains("youtu.be");
+    }
+
     private String extractUUID(String url) {
-        // Tu metodo extractUUID original
         if (url.contains("v=")) return url.split("v=")[1].split("&")[0];
-        else if (url.contains("youtu.be/")) return url.split("youtu.be/")[1].split("\\?")[0];
+        if (url.contains("youtu.be/")) return url.split("youtu.be/")[1].split("\\?")[0];
         return null;
     }
 }

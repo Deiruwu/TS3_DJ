@@ -6,12 +6,7 @@ import TS3Bot.interfaces.Replyable;
 public abstract class Command implements Replyable {
     protected final TeamSpeakBot bot;
 
-    private static final String C_ACTION  = "Orange";    // Acciones, procesos, advertencias (Lo que te gustó)
-    private static final String C_SUCCESS = "Lime";      // Éxito brillante
-    private static final String C_ERROR   = "Red";       // Error crítico
-    private static final String C_INFO    = "#BD93F9";   // Púrpura suave (Estilo Drácula/Gótico) para textos generales
-    private static final String C_TITLE   = "DeepPink";  // Para títulos de listas o cabeceras
-    private static final String C_ACCENT    = "Purple";
+    protected final int ADMIN_GROUP_ID = 6;
 
     public Command(TeamSpeakBot bot) {
         this.bot = bot;

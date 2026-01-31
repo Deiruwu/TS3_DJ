@@ -1,7 +1,7 @@
 package TS3Bot.services;
 
 import TS3Bot.model.QueuedTrack;
-import TS3Bot.model.ShuffleMode;
+import TS3Bot.model.enums.ShuffleMode;
 import TS3Bot.model.Track;
 import TS3Bot.utils.HarmonicUtils;
 

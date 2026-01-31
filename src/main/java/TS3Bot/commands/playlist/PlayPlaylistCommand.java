@@ -3,7 +3,7 @@ package TS3Bot.commands.playlist;
 import TS3Bot.TeamSpeakBot;
 import TS3Bot.commands.AsyncCommand;
 import TS3Bot.commands.CommandContext;
-import TS3Bot.commands.utils.PlaylistUtils;
+import TS3Bot.commands.services.PlaylistServices;
 import TS3Bot.model.Playlist;
 import TS3Bot.model.QueuedTrack;
 import TS3Bot.model.Track;
@@ -20,11 +20,11 @@ import java.util.List;
  * @version 1.0
  */
 public class PlayPlaylistCommand extends AsyncCommand {
-    private final PlaylistUtils playlistUtils;
+    private final PlaylistServices playlistServices;
 
     public PlayPlaylistCommand(TeamSpeakBot bot) {
         super(bot);
-        this.playlistUtils = new PlaylistUtils(bot);
+        this.playlistServices = new PlaylistServices(bot);
     }
 
     @Override
@@ -62,14 +62,14 @@ public class PlayPlaylistCommand extends AsyncCommand {
         try {
             // Resolver playlist usando utils
             int playlistIndex = Integer.parseInt(ctx.getArgsArray()[0]);
-            Playlist playlist = playlistUtils.getPlaylistByUserIndex(playlistIndex);
+            Playlist playlist = playlistServices.getPlaylistByUserIndex(playlistIndex);
 
             if (playlist == null) {
                 replyError("Playlist #" + playlistIndex + " no encontrada.");
                 return;
             }
 
-            List<Track> tracks = playlistUtils.getTracksFromPlaylist(playlist);
+            List<Track> tracks = playlistServices.getTracksFromPlaylist(playlist);
 
             if (tracks.isEmpty()) {
                 replyWarning("La playlist [b]" + playlist.getName() + "[/b] está vacía.");
@@ -77,7 +77,7 @@ public class PlayPlaylistCommand extends AsyncCommand {
             }
 
 
-            boolean isMine = playlistUtils.isOwner(playlist, ctx.getUserUid());
+            boolean isMine = playlistServices.isOwner(playlist, ctx.getUserUid());
             int loaded = 0;
 
             for (Track t : tracks) {

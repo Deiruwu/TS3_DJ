@@ -1,10 +1,10 @@
-package TS3Bot.commands.utils;
+package TS3Bot.commands.services;
 
 import TS3Bot.TeamSpeakBot;
 import TS3Bot.commands.CommandContext;
 import TS3Bot.model.Playlist;
 import TS3Bot.model.QueuedTrack;
-import TS3Bot.model.ShuffleMode;
+import TS3Bot.model.enums.ShuffleMode;
 import TS3Bot.model.Track;
 import TS3Bot.services.AutoDjService;
 import TS3Bot.utils.HarmonicUtils;
@@ -13,12 +13,12 @@ import java.io.File;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class PlaylistSetUtils {
+public class PlaylistSetServices {
 
     private final TeamSpeakBot bot;
     private final AutoDjService autoDjService;
 
-    public PlaylistSetUtils(TeamSpeakBot bot) {
+    public PlaylistSetServices(TeamSpeakBot bot) {
         this.bot = bot;
         this.autoDjService = new AutoDjService();
     }
@@ -272,7 +272,7 @@ public class PlaylistSetUtils {
     private List<List<Track>> extractTracksFromPlaylists(List<Playlist> playlists) {
         List<List<Track>> result = new ArrayList<>();
         for (Playlist p : playlists) {
-            List<Track> tracks = bot.getPlaylistManager().getTracksFromPlaylist(p);
+            List<Track> tracks = bot.getPlaylistManager().getTracksFromPlaylist(p.getId());
             if (tracks != null && !tracks.isEmpty()) {
                 result.add(new ArrayList<>(tracks));
             }
@@ -291,7 +291,7 @@ public class PlaylistSetUtils {
                     ownerName = "Usuario";
                 }
             }
-            List<Track> tracks = bot.getPlaylistManager().getTracksFromPlaylist(p);
+            List<Track> tracks = bot.getPlaylistManager().getTracksFromPlaylist(p.getId());
             if (tracks != null) {
                 for (Track t : tracks) {
                     map.computeIfAbsent(t.getUuid(), k -> new LinkedHashSet<>()).add(ownerName);

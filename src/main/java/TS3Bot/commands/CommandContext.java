@@ -5,13 +5,15 @@ import java.util.*;
 public class CommandContext {
     private final String args;
     private final String userUid;
+    private final int userId;
     private final String userName;
     private final String rawMessage;
     private final Map<String, String> flags;
 
-    public CommandContext(String args, String userUid, String userName, String rawMessage, Map<String, String> flags) {
+    public CommandContext(String args, String userUid, int userId,String userName,  String rawMessage, Map<String, String> flags) {
         this.args = args;
         this.userUid = userUid;
+        this.userId = userId;
         this.userName = userName;
         this.rawMessage = rawMessage;
         this.flags = flags != null ? flags : new HashMap<>();
@@ -19,6 +21,7 @@ public class CommandContext {
 
     public String getArgs() { return args; }
     public String getUserUid() { return userUid; }
+    public int getUserId() { return userId; }
     public String getUserName() { return userName; }
     public String getRawMessage() { return rawMessage; }
 

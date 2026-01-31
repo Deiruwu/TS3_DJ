@@ -1,8 +1,8 @@
-package TS3Bot.commands.utils;
+package TS3Bot.commands.services;
 
 import TS3Bot.TeamSpeakBot;
 import TS3Bot.model.Playlist;
-import TS3Bot.model.PlaylistType;
+import TS3Bot.model.enums.PlaylistType;
 import TS3Bot.model.Track;
 
 import java.util.List;
@@ -16,10 +16,10 @@ import java.util.List;
  * - Validaciones de permisos
  * - Operaciones CRUD comunes
  */
-public class PlaylistUtils {
+public class PlaylistServices {
     private final TeamSpeakBot bot;
 
-    public PlaylistUtils(TeamSpeakBot bot) {
+    public PlaylistServices(TeamSpeakBot bot) {
         this.bot = bot;
     }
 
@@ -117,6 +117,23 @@ public class PlaylistUtils {
     public boolean isOwner(Playlist playlist, String userUid) {
         return playlist.getOwnerUid().equals(userUid);
     }
+
+    public void canModifyPlaylist(int userId, String userUid, Playlist playlist, int adminId) throws IllegalStateException{
+        if (playlist == null) return;
+
+        if (bot.userBelongsToGroup(userId, adminId)) {
+            return;
+        }
+
+        if (!isOwner(playlist, userUid) && bot.getPlaylistManager().isCollaborator(playlist.getId(), userUid)) {
+            throw new IllegalStateException("una playlist que no te pertenece.");
+        }
+
+        if (playlist.getType() != PlaylistType.USER){
+            throw new IllegalStateException("una playlist del tipo " + playlist.getType());
+        }
+    }
+
 
     /**
      * Valida que el índice de playlist sea válido.

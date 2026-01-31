@@ -25,7 +25,7 @@ public class DownloadPipelineListener implements MetadataClient.DownloadListener
 
     @Override
     public void onStart(Track track) {
-        System.out.println("[Download] Iniciando descarga: " + track.getTitle());
+        System.out.println("[Manager] Iniciando descargado de: " + track);
         replyDowload(track.toString());
     }
 

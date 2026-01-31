@@ -1,5 +1,7 @@
 package TS3Bot.model;
 
+import TS3Bot.model.enums.PlaylistType;
+
 import java.util.ArrayList;
 import java.util.List;
 

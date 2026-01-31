@@ -1,7 +1,7 @@
 package TS3Bot.db;
 
 import TS3Bot.model.Playlist;
-import TS3Bot.model.PlaylistType;
+import TS3Bot.model.enums.PlaylistType;
 import TS3Bot.model.Track;
 import java.sql.*;
 import java.util.ArrayList;
@@ -69,11 +69,11 @@ public class PlaylistDAO {
         }
     }
 
-    public List<Track> getTracksFromPlaylist(Playlist playlist) {
-        return getTracksFromPlaylist(playlist.getId(), PlaylistType.USER);
+    public List<Track> getTracksFromPlaylist(int playlistId) {
+        return getTracksFromPlaylist(playlistId, PlaylistType.USER);
     }
 
-        public List<Track> getTracksFromPlaylist(int playlistId, PlaylistType type) {
+    public List<Track> getTracksFromPlaylist(int playlistId, PlaylistType type) {
         List<Track> tracks = new ArrayList<>();
         String sql;
 
